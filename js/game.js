@@ -300,12 +300,19 @@ export class GameState {
     }
     
     isValidPalaceDiagonalMove(pos1, pos2, team) {
-        const keys = [team, `${team}_좌`, `${team}_우`];
-        for (const key of keys) {
-            if (this.palaceDiagonalPaths[key]) {
-                for (const segment of this.palaceDiagonalPaths[key]) {
-                    if ((segment[0].y === pos1.y && segment[0].x === pos1.x && segment[1].y === pos2.y && segment[1].x === pos2.x) ||
-                        (segment[0].y === pos2.y && segment[0].x === pos2.x && segment[1].y === pos1.y && segment[1].x === pos1.x)) {
+        const palaceKeys = [team, `${team}_좌`, `${team}_우`];
+        for (const key of palaceKeys) {
+            if (!this.palaceDiagonalPaths[key]) continue;
+
+            // Iterate over each full diagonal path (e.g., corner-center-corner)
+            for (const path of this.palaceDiagonalPaths[key]) {
+                // Check for a valid move segment within the path
+                for (let i = 0; i < path.length - 1; i++) {
+                    const p1 = path[i];
+                    const p2 = path[i+1];
+                    // Check both directions of the segment
+                    if ((p1.y === pos1.y && p1.x === pos1.x && p2.y === pos2.y && p2.x === pos2.x) ||
+                        (p2.y === pos1.y && p2.x === pos1.x && p1.y === pos2.y && p1.x === pos2.x)) {
                         return true;
                     }
                 }
