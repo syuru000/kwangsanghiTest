@@ -1,0 +1,16 @@
+# IDE and editor files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+debug.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+bower_components/

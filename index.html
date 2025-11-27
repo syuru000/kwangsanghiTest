@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>광상희 (Kwang-sang-hui)</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h1>광상희 (Kwang-sang-hui)</h1>
+    <div id="game-container">
+        <div id="board-wrapper">
+            <div id="game-board"></div>
+            <svg id="annotation-layer"></svg>
+        </div>
+        <div id="right-panel">
+            <div id="info-panel">
+                <div id="turn-indicator">초나라 턴</div>
+                <div id="check-indicator"></div>
+                <div id="game-over-message"></div>
+                 <button id="reset-button">새 게임</button>
+            </div>
+            <div id="record-panel">
+                <h2>기보</h2>
+                <div id="move-history"></div>
+                <div id="record-controls">
+                    <button id="btn-to-start">처음</button>
+                    <button id="btn-prev">이전</button>
+                    <button id="btn-next">다음</button>
+                    <button id="btn-to-end">끝</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js" type="module"></script>
+</body>
+</html>
