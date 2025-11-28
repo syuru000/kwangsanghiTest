@@ -14,6 +14,7 @@ const onlineControlsDiv = document.getElementById('online-controls');
 const resetButton = document.getElementById('reset-button');
 const boardWrapper = document.getElementById('board-wrapper');
 const annotationLayer = document.getElementById('annotation-layer');
+const gameBoard = document.getElementById('game-board');
 
 // --- Drawing State (for Local Play) ---
 let isDrawing = false;
