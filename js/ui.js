@@ -2,7 +2,7 @@
 
 const BOARD_WIDTH_CELLS = 15;
 const BOARD_HEIGHT_CELLS = 14;
-const CELL_SIZE = 40; // Assuming a fixed cell size for now
+const CELL_SIZE = 40;
 
 const gameBoard = document.getElementById('game-board');
 const turnIndicator = document.getElementById('turn-indicator');
@@ -23,9 +23,10 @@ export function initializeUI(cellClickHandler) {
             cell.dataset.y = y;
             cell.dataset.x = x;
             cell.addEventListener('click', (e) => {
-                const boardRect = gameBoard.getBoundingClientRect();
-                // We need to determine the logical cell coordinates based on player's view
-                const playerTeam = e.target.closest('#game-board').dataset.playerTeam || '초';
+                const boardElement = e.target.closest('#game-board');
+                if (!boardElement) return;
+
+                const playerTeam = boardElement.dataset.playerTeam || '초';
                 let logicalY = y;
                 let logicalX = x;
 
@@ -44,25 +45,24 @@ export function initializeUI(cellClickHandler) {
 /**
  * Renders the entire game board based on the state received from the server.
  * @param {object} gameState The game state object from the server.
- * @param {object|null} selectedPos The locally selected position {y, x}.
  * @param {string|null} playerTeam The team of the current player ('초' or '한').
  */
-export function renderBoard(gameState, selectedPos, playerTeam) {
+export function renderBoard(gameState, playerTeam) {
     if (!gameState || !gameState.board_state) {
         console.warn("Render called with invalid gameState.");
         return;
     }
     
-    // Set player team on the board element for coordinate calculation
     gameBoard.dataset.playerTeam = playerTeam;
     const isFlipped = playerTeam === '한';
 
-    // Clear previous dynamic elements
-    gameBoard.querySelectorAll('.piece, .valid-move-dot, .selected, .check-highlight, .last-move-marker').forEach(el => el.remove());
+    // Clear all previous dynamic elements (pieces, dots, highlights)
+    const dynamicElements = gameBoard.querySelectorAll('.piece, .valid-move-dot, .selected, .check-highlight');
+    dynamicElements.forEach(el => el.remove());
 
     // Draw pieces
-    gameState.board_state.forEach((row, y) => {
-        row.forEach((piece, x) => {
+    gameState.board_state.forEach((row) => {
+        row.forEach((piece) => {
             if (piece) {
                 const pieceEl = createPieceElement(piece, isFlipped);
                 gameBoard.appendChild(pieceEl);
@@ -70,10 +70,14 @@ export function renderBoard(gameState, selectedPos, playerTeam) {
         });
     });
 
-    // Highlight selected piece
-    if (selectedPos) {
-        const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - selectedPos.y) : selectedPos.y;
-        const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - selectedPos.x) : selectedPos.x;
+    // Highlight selected piece based on server state
+    if (gameState.selected_pos) {
+        const selectedY = gameState.selected_pos[0];
+        const selectedX = gameState.selected_pos[1];
+        
+        const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - selectedY) : selectedY;
+        const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - selectedX) : selectedX;
+        
         const cell = gameBoard.querySelector(`.cell[data-y='${visualY}'][data-x='${visualX}']`);
         if(cell) {
              const highlight = document.createElement('div');
@@ -89,8 +93,12 @@ export function renderBoard(gameState, selectedPos, playerTeam) {
     
     // Highlight king in check
     if (gameState.in_check_team && gameState.checked_su_pos) {
-        const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - gameState.checked_su_pos[0]) : gameState.checked_su_pos[0];
-        const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - gameState.checked_su_pos[1]) : gameState.checked_su_pos[1];
+        const checkY = gameState.checked_su_pos[0];
+        const checkX = gameState.checked_su_pos[1];
+
+        const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - checkY) : checkY;
+        const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - checkX) : checkX;
+
         const cell = gameBoard.querySelector(`.cell[data-y='${visualY}'][data-x='${visualX}']`);
          if(cell) {
              const checkHighlight = document.createElement('div');
@@ -106,12 +114,15 @@ function createPieceElement(piece, isFlipped) {
     const pieceEl = document.createElement('div');
     pieceEl.classList.add('piece');
     
-    let imageName = piece.is_deactivated 
+    const imageName = piece.is_deactivated 
         ? `비활성${piece.team}_${piece.korean_name}` 
         : `${piece.team}_${piece.korean_name}`;
 
-    const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - piece.position[0]) : piece.position[0];
-    const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - piece.position[1]) : piece.position[1];
+    const logicalY = piece.position[0];
+    const logicalX = piece.position[1];
+
+    const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - logicalY) : logicalY;
+    const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - logicalX) : logicalX;
 
     pieceEl.style.backgroundImage = `url('images/${imageName}.png')`;
     pieceEl.style.left = `${visualX * CELL_SIZE}px`;
@@ -119,7 +130,6 @@ function createPieceElement(piece, isFlipped) {
     pieceEl.style.width = `${CELL_SIZE}px`;
     pieceEl.style.height = `${CELL_SIZE}px`;
     
-    // Add data attributes for debugging/styling if needed
     pieceEl.dataset.team = piece.team;
     pieceEl.dataset.name = piece.name;
 

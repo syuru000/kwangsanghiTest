@@ -8,7 +8,6 @@ class GameClient {
         this.gameId = null;
         this.playerTeam = null; // '초' or '한'
         this.gameState = {}; // Server will be the source of truth
-        this.selectedPos = null;
 
         this.setupMultiplayerUI();
         initializeUI(this.handleCellClick.bind(this));
@@ -49,6 +48,8 @@ class GameClient {
                 if (!this.socket) {
                     this.setupSocketConnections();
                 }
+                // FIX: Store the game ID on the client instance when joining.
+                this.gameId = gameIdToJoin;
                 this.socket.emit('join_game', { game_id: gameIdToJoin });
             } else {
                 alert('참가할 게임의 ID를 입력하세요.');
@@ -57,10 +58,7 @@ class GameClient {
     }
 
     setupSocketConnections() {
-        // !!! 중요 !!!
-        // 이 URL을 실제 Replit 백엔드 주소로 변경해야 합니다.
-        // 예: 'https://ksh-game-backend.your-username.replit.dev'
-        const backendUrl = 'https://9040d67a-de41-4b2f-ba09-6b8bbadc9774-00-21d4400b72co7.sisko.replit.dev'; // 로컬 테스트용 주소
+        const backendUrl = 'http://127.0.0.1:5000'; // 로컬 테스트용. 배포 시 Replit URL로 변경!
         
         this.socket = io(backendUrl, {
             transports: ['websocket'] 
@@ -72,26 +70,21 @@ class GameClient {
 
         this.socket.on('game_created', (data) => {
             this.gameId = data.game_id;
-            this.playerTeam = '초'; // 게임 생성자가 '초'
-            document.getElementById('game-id-display').textContent = `게임이 생성되었습니다. ID: ${this.gameId}. 상대방을 기다리세요...`;
-            console.log(`Game created. ID: ${this.gameId}, I am team: ${this.playerTeam}`);
+            this.playerTeam = '초';
+            document.getElementById('game-id-display').textContent = `게임 ID: ${this.gameId}. 상대방을 기다리세요...`;
         });
 
         this.socket.on('game_started', (data) => {
              if (!this.playerTeam) {
-                this.playerTeam = '한'; // 참가자가 '한'
+                this.playerTeam = '한';
              }
              document.getElementById('game-id-display').textContent = `게임 시작! 당신은 ${this.playerTeam}나라입니다.`;
-             console.log(`Game started. I am team: ${this.playerTeam}`);
         });
 
         this.socket.on('update_state', (serverState) => {
-            console.log('Received state update from server:', serverState);
+            console.log('State update received:', serverState);
             this.gameState = serverState;
-            // 로컬 선택 상태 초기화
-            this.selectedPos = null; 
-            // 새로운 상태로 보드 렌더링
-            renderBoard(this.gameState, this.selectedPos, this.playerTeam);
+            renderBoard(this.gameState, this.playerTeam);
         });
 
         this.socket.on('player_disconnected', (data) => {
@@ -110,55 +103,16 @@ class GameClient {
     }
 
     handleCellClick(pos) {
-        if (!this.socket || !this.gameId || !this.playerTeam) {
+        if (!this.socket || !this.gameId) {
             alert('먼저 게임을 생성하거나 참가해야 합니다.');
             return;
         }
 
-        if (this.gameState.current_turn !== this.playerTeam) {
-            console.log('상대방의 턴입니다.');
-            return;
-        }
-        
-        if (this.gameState.game_over) {
-            console.log('게임이 종료되었습니다.');
-            return;
-        }
-
-        const pieceAtPos = this.gameState.board_state[pos.y][pos.x];
-        const isAValidMove = this.gameState.valid_moves?.some(move => move[0] === pos.y && move[1] === pos.x);
-
-        // If a piece is selected and the click is a valid move, make the move
-        if (this.selectedPos && isAValidMove) {
-            this.socket.emit('make_move', {
-                game_id: this.gameId,
-                from_pos: [this.selectedPos.y, this.selectedPos.x],
-                to_pos: [pos.y, pos.x]
-            });
-            // The server response will clear selection and update the board
-            return;
-        }
-
-        // If the click is on one of the player's own pieces, ask for its valid moves
-        if (pieceAtPos && pieceAtPos.team === this.playerTeam) {
-            this.selectedPos = pos;
-            this.socket.emit('get_valid_moves', {
-                game_id: this.gameId,
-                pos: [pos.y, pos.x]
-            });
-            // The server will respond with an update_state that includes valid_moves
-            // We also re-render locally to show the selection immediately
-            renderBoard(this.gameState, this.selectedPos, this.playerTeam);
-            return;
-        }
-
-        // If the click is anywhere else, clear the selection
-        this.selectedPos = null;
-        // Also clear valid moves from the last selection
-        if (this.gameState.valid_moves && this.gameState.valid_moves.length > 0) {
-            this.gameState.valid_moves = [];
-        }
-        renderBoard(this.gameState, this.selectedPos, this.playerTeam);
+        console.log(`Cell clicked:`, pos);
+        this.socket.emit('handle_click', {
+            game_id: this.gameId,
+            pos: [pos.y, pos.x]
+        });
     }
 }
 
