@@ -32,17 +32,13 @@ function startLocalGame() {
     onlineControlsDiv.style.display = 'none';
     gameContainerDiv.style.display = 'flex';
     
-    // Initialize UI without a click handler; we'll handle clicks on the wrapper
     initializeUI();
     
-    // Remove any previous listeners before adding new ones
-    const newBoardWrapper = boardWrapper.cloneNode(true);
-    boardWrapper.parentNode.replaceChild(newBoardWrapper, boardWrapper);
-    
-    newBoardWrapper.addEventListener('mousedown', handleBoardMouseDown);
-    newBoardWrapper.addEventListener('mouseup', handleBoardMouseUp);
-    newBoardWrapper.addEventListener('mousemove', handleBoardMouseMove);
-    newBoardWrapper.addEventListener('contextmenu', e => e.preventDefault());
+    // Directly attach listeners to the original boardWrapper
+    boardWrapper.addEventListener('mousedown', handleBoardMouseDown);
+    boardWrapper.addEventListener('mouseup', handleBoardMouseUp);
+    boardWrapper.addEventListener('mousemove', handleBoardMouseMove);
+    boardWrapper.addEventListener('contextmenu', e => e.preventDefault());
 
     renderBoard(localGameState, '초');
 
@@ -53,6 +49,7 @@ function startLocalGame() {
         }
     };
 }
+
 
 function getCellCoordsFromEvent(e) {
     const rect = gameBoard.getBoundingClientRect();
@@ -158,9 +155,10 @@ function startOnlineGame() {
     onlineGameClient.setupMultiplayerUI(onlineControlsDiv);
     
     initializeUI();
-    const newBoardWrapper = boardWrapper.cloneNode(true);
-    boardWrapper.parentNode.replaceChild(newBoardWrapper, boardWrapper);
-    newBoardWrapper.addEventListener('mouseup', (e) => {
+    
+    // Directly attach listener to the original boardWrapper
+    boardWrapper.addEventListener('mouseup', (e) => {
+         if (gameMode !== 'online') return; // Ensure this only runs in online mode
          if (e.button === 0) { // Only left clicks
             const pos = getCellCoordsFromEvent(e);
             if(pos && onlineGameClient) onlineGameClient.handleCellClick(pos);
