@@ -12,7 +12,15 @@ const modeSelectionDiv = document.getElementById('mode-selection');
 const gameContainerDiv = document.getElementById('game-container');
 const onlineControlsDiv = document.getElementById('online-controls');
 const resetButton = document.getElementById('reset-button');
+const boardWrapper = document.getElementById('board-wrapper');
+const annotationLayer = document.getElementById('annotation-layer');
 
+// --- Drawing State (for Local Play) ---
+let isDrawing = false;
+let drawingStartPos = null;
+let tempArrow = null;
+let mouseDownTime = 0;
+const CLICK_THRESHOLD = 150; // ms
 
 // --- Mode: Local Game ---
 
@@ -24,7 +32,15 @@ function startLocalGame() {
     onlineControlsDiv.style.display = 'none';
     gameContainerDiv.style.display = 'flex';
     
+    // Pass the actual click handler function to UI
     initializeUI(handleLocalClick);
+    
+    // Add board interaction listeners only for local mode
+    boardWrapper.addEventListener('mousedown', handleBoardMouseDown);
+    boardWrapper.addEventListener('mouseup', handleBoardMouseUp);
+    boardWrapper.addEventListener('mousemove', handleBoardMouseMove);
+    boardWrapper.addEventListener('contextmenu', e => e.preventDefault());
+
     renderBoard(localGameState, '초'); // Default to '초' perspective
 
     resetButton.onclick = () => {
@@ -35,15 +51,113 @@ function startLocalGame() {
     };
 }
 
+function getCellCoordsFromEvent(e) {
+    const rect = gameBoard.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / 40);
+    const y = Math.floor((e.clientY - rect.top) / 40);
+    if (y < 0 || y >= 14 || x < 0 || x >= 15) return null;
+    return { y, x };
+}
+
+function handleBoardMouseDown(e) {
+    mouseDownTime = Date.now();
+    // Drawing is handled by right-click / context menu events
+    if (e.button !== 2) return; // Only for right-click
+
+    isDrawing = true;
+    drawingStartPos = getCellCoordsFromEvent(e);
+
+    // If right-clicking without dragging, we'll clear annotations on mouseup
+}
+
+function handleBoardMouseMove(e) {
+    if (!isDrawing || !drawingStartPos) return;
+
+    if (tempArrow) {
+        tempArrow.remove();
+    }
+    const currentPos = getCellCoordsFromEvent(e);
+    if (!currentPos) return;
+
+    const color = e.shiftKey ? "#FFDC00" : "#20C20E"; // Yellow for Shift, Green otherwise
+    const markerId = e.shiftKey ? "yellow" : "green";
+
+    const x1 = drawingStartPos.x * 40 + 20;
+    const y1 = drawingStartPos.y * 40 + 20;
+    const x2 = currentPos.x * 40 + 20;
+    const y2 = currentPos.y * 40 + 20;
+
+    // Make sure defs for markers are present
+    if (!annotationLayer.querySelector('defs')) {
+         annotationLayer.innerHTML = `<defs>
+            <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" /></marker>
+            <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" /></marker>
+            <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" /></marker>
+        </defs>`;
+    }
+    
+    tempArrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    tempArrow.setAttribute('x1', x1);
+    tempArrow.setAttribute('y1', y1);
+    tempArrow.setAttribute('x2', x2);
+    tempArrow.setAttribute('y2', y2);
+    tempArrow.setAttribute('stroke', color);
+    tempArrow.setAttribute('stroke-width', '4');
+    tempArrow.setAttribute('opacity', '0.7');
+    tempArrow.setAttribute('marker-end', `url(#arrowhead-${markerId})`);
+    annotationLayer.appendChild(tempArrow);
+}
+
+
+function handleBoardMouseUp(e) {
+    const isRightClick = e.button === 2;
+    const endPos = getCellCoordsFromEvent(e);
+
+    if (isDrawing && drawingStartPos && endPos && (drawingStartPos.x !== endPos.x || drawingStartPos.y !== endPos.y)) {
+        // Finalize arrow drawing
+        const color = e.shiftKey ? "#FFDC00" : "#20C20E";
+        localGameState.drawnArrows.push({ startPos: drawingStartPos, endPos, color });
+    } else if (isRightClick) {
+        // If it was a simple right-click (no drag), clear annotations
+        localGameState.drawnArrows = [];
+        localGameState.drawnCircles = [];
+    }
+
+    // Cleanup drawing state
+    if (tempArrow) tempArrow.remove();
+    isDrawing = false;
+    drawingStartPos = null;
+    tempArrow = null;
+
+    // Re-render to show permanent arrows or clear them
+    renderBoard(localGameState, '초');
+}
+
+
 function handleLocalClick(pos) {
     if (gameMode !== 'local' || !localGameState) return;
 
-    // Call the logic handler from our local game engine
+    // Check if the mouseup event is part of a drag (drawing)
+    if (Date.now() - mouseDownTime > CLICK_THRESHOLD && isDrawing) {
+        return; // It was a drag, not a click for moving a piece
+    }
+    
+    // If it's a quick click, handle piece movement
     localGameState.handle_click([pos.y, pos.x]);
 
     // Re-render the board with the updated state
     renderBoard(localGameState, '초');
 }
+// Add the new click handler to the board wrapper
+boardWrapper.addEventListener('mousedown', (e) => mouseDownTime = Date.now());
+boardWrapper.addEventListener('mouseup', (e) => {
+    if (e.button !== 0) return; // Only left clicks for piece moves
+    const clickDuration = Date.now() - mouseDownTime;
+    if (clickDuration < CLICK_THRESHOLD) {
+        const pos = getCellCoordsFromEvent(e);
+        if(pos) handleLocalClick(pos);
+    }
+});
 
 
 // --- Mode: Online Game ---

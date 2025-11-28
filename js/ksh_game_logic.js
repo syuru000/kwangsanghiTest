@@ -593,6 +593,10 @@ class GameState {
         this.move_history = [];
         this.in_check_team = null;
         this.checked_su_pos = null;
+        // For local play UI features
+        this.lastMove = null;
+        this.drawnArrows = [];
+        this.drawnCircles = [];
     }
     
     reset() {
@@ -921,6 +925,9 @@ class GameState {
         
         const piece_to_move = this.board_state[from_y][from_x];
         const captured_piece = this.board_state[to_y][to_x];
+
+        // Update last move info *before* the board state changes
+        this.lastMove = { from_pos, to_pos };
 
         if (captured_piece && captured_piece.name === 'Su') {
             this.game_over = true;
