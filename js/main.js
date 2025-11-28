@@ -2,19 +2,79 @@
 
 import { initializeUI, renderBoard } from './ui.js';
 
+// --- Global State ---
+let gameMode = null; // 'local' or 'online'
+let localGameState = null;
+let onlineGameClient = null;
+
+// --- DOM Elements ---
+const modeSelectionDiv = document.getElementById('mode-selection');
+const gameContainerDiv = document.getElementById('game-container');
+const onlineControlsDiv = document.getElementById('online-controls');
+const resetButton = document.getElementById('reset-button');
+
+
+// --- Mode: Local Game ---
+
+function startLocalGame() {
+    gameMode = 'local';
+    localGameState = new GameState(); // From ksh_game_logic.js
+
+    modeSelectionDiv.style.display = 'none';
+    onlineControlsDiv.style.display = 'none';
+    gameContainerDiv.style.display = 'flex';
+    
+    initializeUI(handleLocalClick);
+    renderBoard(localGameState, '초'); // Default to '초' perspective
+
+    resetButton.onclick = () => {
+        if (confirm('현재 게임을 리셋하고 새 게임을 시작하시겠습니까?')) {
+            localGameState.reset();
+            renderBoard(localGameState, '초');
+        }
+    };
+}
+
+function handleLocalClick(pos) {
+    if (gameMode !== 'local' || !localGameState) return;
+
+    // Call the logic handler from our local game engine
+    localGameState.handle_click([pos.y, pos.x]);
+
+    // Re-render the board with the updated state
+    renderBoard(localGameState, '초');
+}
+
+
+// --- Mode: Online Game ---
+
+function startOnlineGame() {
+    gameMode = 'online';
+
+    modeSelectionDiv.style.display = 'none';
+    onlineControlsDiv.style.display = 'block';
+    gameContainerDiv.style.display = 'flex';
+    
+    onlineGameClient = new GameClient();
+    onlineGameClient.setupMultiplayerUI(onlineControlsDiv);
+    
+    initializeUI(onlineGameClient.handleCellClick.bind(onlineGameClient));
+
+    resetButton.onclick = () => {
+        alert('온라인 게임은 서버에서 리셋해야 합니다.');
+    };
+}
+
 class GameClient {
     constructor() {
         this.socket = null;
         this.gameId = null;
         this.playerTeam = null; // '초' or '한'
-        this.gameState = {}; // Server will be the source of truth
-
-        this.setupMultiplayerUI();
-        initializeUI(this.handleCellClick.bind(this));
+        this.gameState = {}; // Server is the source of truth
     }
 
-    setupMultiplayerUI() {
-        const container = document.getElementById('multiplayer-controls');
+    setupMultiplayerUI(container) {
+        container.innerHTML = ''; // Clear previous content
         
         const gameIdDisplay = document.createElement('p');
         gameIdDisplay.id = 'game-id-display';
@@ -36,19 +96,14 @@ class GameClient {
         container.append(createButton, gameIdInput, joinButton, gameIdDisplay);
 
         createButton.addEventListener('click', () => {
-            if (!this.socket) {
-                this.setupSocketConnections();
-            }
+            if (!this.socket) this.setupSocketConnections();
             this.socket.emit('create_game');
         });
 
         joinButton.addEventListener('click', () => {
             const gameIdToJoin = gameIdInput.value.trim();
             if (gameIdToJoin) {
-                if (!this.socket) {
-                    this.setupSocketConnections();
-                }
-                // FIX: Store the game ID on the client instance when joining.
+                if (!this.socket) this.setupSocketConnections();
                 this.gameId = gameIdToJoin;
                 this.socket.emit('join_game', { game_id: gameIdToJoin });
             } else {
@@ -58,48 +113,31 @@ class GameClient {
     }
 
     setupSocketConnections() {
-        const backendUrl = 'https://9040d67a-de41-4b2f-ba09-6b8bbadc9774-00-21d4400b72co7.sisko.replit.dev'; // 로컬 테스트용. 배포 시 Replit URL로 변경!
+        const backendUrl = 'https://9040d67a-de41-4b2f-ba09-6b8bbadc9774-00-21d4400b72co7.sisko.replit.dev';
         
-        this.socket = io(backendUrl, {
-            transports: ['websocket'] 
-        });
+        this.socket = io(backendUrl, { transports: ['websocket'] });
 
-        this.socket.on('connect', () => {
-            console.log('서버에 연결되었습니다. ID:', this.socket.id);
-        });
+        this.socket.on('connect', () => console.log('서버에 연결되었습니다. ID:', this.socket.id));
 
         this.socket.on('game_created', (data) => {
             this.gameId = data.game_id;
             this.playerTeam = '초';
-            document.getElementById('game-id-display').textContent = `게임 ID: ${this.gameId}. 상대방을 기다리세요...`;
+            document.getElementById('game-id-display').textContent = `게임 ID: ${this.gameId}. 복사해서 친구에게 전달하세요.`;
         });
 
         this.socket.on('game_started', (data) => {
-             if (!this.playerTeam) {
-                this.playerTeam = '한';
-             }
+             if (!this.playerTeam) this.playerTeam = '한';
              document.getElementById('game-id-display').textContent = `게임 시작! 당신은 ${this.playerTeam}나라입니다.`;
         });
 
         this.socket.on('update_state', (serverState) => {
-            console.log('State update received:', serverState);
             this.gameState = serverState;
             renderBoard(this.gameState, this.playerTeam);
         });
 
-        this.socket.on('player_disconnected', (data) => {
-            alert(data.message);
-            document.getElementById('game-id-display').textContent = '상대방의 연결이 끊겼습니다.';
-        });
-        
-        this.socket.on('game_over', (data) => {
-            alert(`게임 종료! ${data.winner}의 승리!`);
-        });
-
-        this.socket.on('error', (data) => {
-            console.error('Server error:', data.message);
-            alert(`오류: ${data.message}`);
-        });
+        this.socket.on('player_disconnected', (data) => alert(data.message));
+        this.socket.on('game_over', (data) => alert(`게임 종료! ${data.winner}의 승리!`));
+        this.socket.on('error', (data) => alert(`오류: ${data.message}`));
     }
 
     handleCellClick(pos) {
@@ -107,8 +145,6 @@ class GameClient {
             alert('먼저 게임을 생성하거나 참가해야 합니다.');
             return;
         }
-
-        console.log(`Cell clicked:`, pos);
         this.socket.emit('handle_click', {
             game_id: this.gameId,
             pos: [pos.y, pos.x]
@@ -116,7 +152,12 @@ class GameClient {
     }
 }
 
-// --- Start the game ---
+
+// --- Initial Setup ---
 window.addEventListener('load', () => {
-    new GameClient();
+    const playLocalBtn = document.getElementById('play-local-btn');
+    const playOnlineBtn = document.getElementById('play-online-btn');
+
+    playLocalBtn.addEventListener('click', startLocalGame);
+    playOnlineBtn.addEventListener('click', startOnlineGame);
 });

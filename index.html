@@ -8,10 +8,17 @@
 </head>
 <body>
     <h1>광상희 (Kwang-sang-hui)</h1>
-    <div id="multiplayer-controls">
-        <!-- JS will populate this -->
+
+    <div id="mode-selection">
+        <button id="play-local-btn">혼자서하기</button>
+        <button id="play-online-btn">친구와 함께하기</button>
     </div>
-    <div id="game-container">
+
+    <div id="online-controls" style="display: none;">
+        <!-- JS will populate this for online mode -->
+    </div>
+
+    <div id="game-container" style="display: none;">
         <div id="board-wrapper">
             <div id="game-board"></div>
             <svg id="annotation-layer"></svg>
@@ -37,6 +44,7 @@
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/ksh_game_logic.js"></script> 
     <script src="js/main.js" type="module"></script>
 </body>
 </html>
