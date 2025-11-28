@@ -58,7 +58,7 @@ class GameClient {
     }
 
     setupSocketConnections() {
-        const backendUrl = 'http://127.0.0.1:5000'; // 로컬 테스트용. 배포 시 Replit URL로 변경!
+        const backendUrl = 'https://9040d67a-de41-4b2f-ba09-6b8bbadc9774-00-21d4400b72co7.sisko.replit.dev'; // 로컬 테스트용. 배포 시 Replit URL로 변경!
         
         this.socket = io(backendUrl, {
             transports: ['websocket'] 
