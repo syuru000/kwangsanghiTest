@@ -2,181 +2,176 @@
 
 import { initializeUI, renderBoard } from './ui.js';
 
-// --- Global State ---
-let gameMode = null; // 'local' or 'online'
+// --- This will be initialized on window load ---
+let gameMode = null; 
 let localGameState = null;
 let onlineGameClient = null;
 
-// --- DOM Elements ---
-const modeSelectionDiv = document.getElementById('mode-selection');
-const gameContainerDiv = document.getElementById('game-container');
-const onlineControlsDiv = document.getElementById('online-controls');
-const resetButton = document.getElementById('reset-button');
-const boardWrapper = document.getElementById('board-wrapper');
-const annotationLayer = document.getElementById('annotation-layer');
-const gameBoard = document.getElementById('game-board');
-
-// --- Drawing State (for Local Play) ---
-let isDrawing = false;
-let drawingStartPos = null;
-let tempArrow = null;
-let mouseDownTime = 0;
-const CLICK_THRESHOLD = 200; // ms to differentiate click from drag
-
-// --- Mode: Local Game ---
-
-function startLocalGame() {
-    gameMode = 'local';
-    localGameState = new GameState(); // From ksh_game_logic.js
-
-    modeSelectionDiv.style.display = 'none';
-    onlineControlsDiv.style.display = 'none';
-    gameContainerDiv.style.display = 'flex';
+// --- Main setup on window load ---
+window.addEventListener('load', () => {
     
-    initializeUI();
-    
-    // Directly attach listeners to the original boardWrapper
-    boardWrapper.addEventListener('mousedown', handleBoardMouseDown);
-    boardWrapper.addEventListener('mouseup', handleBoardMouseUp);
-    boardWrapper.addEventListener('mousemove', handleBoardMouseMove);
-    boardWrapper.addEventListener('contextmenu', e => e.preventDefault());
+    // --- DOM Elements (Defined safely after DOM is loaded) ---
+    const modeSelectionDiv = document.getElementById('mode-selection');
+    const gameContainerDiv = document.getElementById('game-container');
+    const onlineControlsDiv = document.getElementById('online-controls');
+    const resetButton = document.getElementById('reset-button');
+    const boardWrapper = document.getElementById('board-wrapper');
+    const annotationLayer = document.getElementById('annotation-layer');
+    const gameBoard = document.getElementById('game-board');
 
-    renderBoard(localGameState, '초');
+    // --- Drawing State (for Local Play) ---
+    let isDrawing = false;
+    let drawingStartPos = null;
+    let tempArrow = null;
+    let mouseDownTime = 0;
+    const CLICK_THRESHOLD = 200; // ms to differentiate click from drag
 
-    resetButton.onclick = () => {
-        if (confirm('현재 게임을 리셋하고 새 게임을 시작하시겠습니까?')) {
-            localGameState.reset();
-            renderBoard(localGameState, '초');
+    // --- Utility Functions ---
+    function getCellCoordsFromEvent(e) {
+        if (!gameBoard) return null;
+        const rect = gameBoard.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / 40);
+        const y = Math.floor((e.clientY - rect.top) / 40);
+        if (y < 0 || y >= 14 || x < 0 || x >= 15) return null;
+        return { y, x };
+    }
+
+    // --- Local Game Handlers ---
+    function handleBoardMouseDown(e) {
+        if (gameMode !== 'local') return;
+        mouseDownTime = Date.now();
+        drawingStartPos = getCellCoordsFromEvent(e);
+        
+        if (e.button === 2) { // Right-click
+            isDrawing = true;
         }
-    };
-}
-
-
-function getCellCoordsFromEvent(e) {
-    const rect = gameBoard.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / 40);
-    const y = Math.floor((e.clientY - rect.top) / 40);
-    if (y < 0 || y >= 14 || x < 0 || x >= 15) return null;
-    return { y, x };
-}
-
-function handleBoardMouseDown(e) {
-    if (gameMode !== 'local') return;
-    mouseDownTime = Date.now();
-    drawingStartPos = getCellCoordsFromEvent(e);
-    
-    // Start drawing only on right-click
-    if (e.button === 2) {
-        isDrawing = true;
     }
-}
 
-function handleBoardMouseMove(e) {
-    if (gameMode !== 'local' || !isDrawing || !drawingStartPos) return;
+    function handleBoardMouseMove(e) {
+        if (gameMode !== 'local' || !isDrawing || !drawingStartPos) return;
 
-    if (tempArrow) {
-        tempArrow.remove();
+        if (tempArrow) {
+            tempArrow.remove();
+        }
+        const currentPos = getCellCoordsFromEvent(e);
+        if (!currentPos) return;
+
+        const color = e.shiftKey ? "#FFDC00" : "#20C20E";
+        const markerId = e.shiftKey ? "yellow" : "green";
+        const x1 = drawingStartPos.x * 40 + 20;
+        const y1 = drawingStartPos.y * 40 + 20;
+        const x2 = currentPos.x * 40 + 20;
+        const y2 = currentPos.y * 40 + 20;
+
+        if (!annotationLayer.querySelector('defs')) {
+             annotationLayer.innerHTML = `<defs>
+                <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" /></marker>
+                <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" /></marker>
+                <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" /></marker>
+            </defs>`;
+        }
+        
+        tempArrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tempArrow.setAttribute('x1', x1); tempArrow.setAttribute('y1', y1);
+        tempArrow.setAttribute('x2', x2); tempArrow.setAttribute('y2', y2);
+        tempArrow.setAttribute('stroke', color);
+        tempArrow.setAttribute('stroke-width', '4');
+        tempArrow.setAttribute('opacity', '0.7');
+        tempArrow.setAttribute('marker-end', `url(#arrowhead-${markerId})`);
+        annotationLayer.appendChild(tempArrow);
     }
-    const currentPos = getCellCoordsFromEvent(e);
-    if (!currentPos) return;
 
-    const color = e.shiftKey ? "#FFDC00" : "#20C20E";
-    const markerId = e.shiftKey ? "yellow" : "green";
+    function handleBoardMouseUp(e) {
+        if (gameMode !== 'local') return;
+        
+        const clickDuration = Date.now() - mouseDownTime;
+        const endPos = getCellCoordsFromEvent(e);
 
-    const x1 = drawingStartPos.x * 40 + 20;
-    const y1 = drawingStartPos.y * 40 + 20;
-    const x2 = currentPos.x * 40 + 20;
-    const y2 = currentPos.y * 40 + 20;
-
-    if (!annotationLayer.querySelector('defs')) {
-         annotationLayer.innerHTML = `<defs>
-            <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" /></marker>
-            <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" /></marker>
-            <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" /></marker>
-        </defs>`;
-    }
-    
-    tempArrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    tempArrow.setAttribute('x1', x1); tempArrow.setAttribute('y1', y1);
-    tempArrow.setAttribute('x2', x2); tempArrow.setAttribute('y2', y2);
-    tempArrow.setAttribute('stroke', color);
-    tempArrow.setAttribute('stroke-width', '4');
-    tempArrow.setAttribute('opacity', '0.7');
-    tempArrow.setAttribute('marker-end', `url(#arrowhead-${markerId})`);
-    annotationLayer.appendChild(tempArrow);
-}
-
-
-function handleBoardMouseUp(e) {
-    if (gameMode !== 'local') return;
-    
-    const clickDuration = Date.now() - mouseDownTime;
-    const endPos = getCellCoordsFromEvent(e);
-
-    // --- Handle Left Click (Piece Moves) ---
-    if (e.button === 0) {
-        if (clickDuration < CLICK_THRESHOLD && endPos) {
+        if (e.button === 0 && clickDuration < CLICK_THRESHOLD && endPos) {
             localGameState.handle_click([endPos.y, endPos.x]);
+        } else if (e.button === 2) {
+            const wasDragged = isDrawing && drawingStartPos && endPos && (drawingStartPos.x !== endPos.x || drawingStartPos.y !== endPos.y);
+            if (wasDragged) {
+                const color = e.shiftKey ? "#FFDC00" : "#20C20E";
+                localGameState.drawnArrows.push({ startPos: drawingStartPos, endPos, color });
+            } else {
+                localGameState.drawnArrows = [];
+                localGameState.drawnCircles = [];
+            }
         }
+
+        if (tempArrow) tempArrow.remove();
+        isDrawing = false;
+        drawingStartPos = null;
+        tempArrow = null;
+
+        renderBoard(localGameState, '초');
     }
 
-    // --- Handle Right Click (Drawing & Clearing) ---
-    if (e.button === 2) {
-        const wasDragged = isDrawing && drawingStartPos && endPos && (drawingStartPos.x !== endPos.x || drawingStartPos.y !== endPos.y);
-        if (wasDragged) {
-            // Finalize arrow
-            const color = e.shiftKey ? "#FFDC00" : "#20C20E";
-            localGameState.drawnArrows.push({ startPos: drawingStartPos, endPos, color });
-        } else {
-            // Simple right-click, clear annotations
-            localGameState.drawnArrows = [];
-            localGameState.drawnCircles = [];
-        }
+    // --- Game Mode Setup ---
+    function startLocalGame() {
+        gameMode = 'local';
+        localGameState = new GameState();
+
+        modeSelectionDiv.style.display = 'none';
+        onlineControlsDiv.style.display = 'none';
+        gameContainerDiv.style.display = 'flex';
+        
+        initializeUI();
+        
+        boardWrapper.addEventListener('mousedown', handleBoardMouseDown);
+        boardWrapper.addEventListener('mouseup', handleBoardMouseUp);
+        boardWrapper.addEventListener('mousemove', handleBoardMouseMove);
+        boardWrapper.addEventListener('contextmenu', e => e.preventDefault());
+
+        renderBoard(localGameState, '초');
+
+        resetButton.onclick = () => {
+            if (confirm('현재 게임을 리셋하고 새 게임을 시작하시겠습니까?')) {
+                localGameState.reset();
+                renderBoard(localGameState, '초');
+            }
+        };
     }
 
-    // --- Cleanup and Re-render ---
-    if (tempArrow) tempArrow.remove();
-    isDrawing = false;
-    drawingStartPos = null;
-    tempArrow = null;
+    function startOnlineGame() {
+        gameMode = 'online';
 
-    renderBoard(localGameState, '초');
-}
+        modeSelectionDiv.style.display = 'none';
+        onlineControlsDiv.style.display = 'block';
+        gameContainerDiv.style.display = 'flex';
+        
+        onlineGameClient = new GameClient();
+        onlineGameClient.setupMultiplayerUI(onlineControlsDiv);
+        
+        initializeUI();
+        
+        boardWrapper.addEventListener('mouseup', (e) => {
+             if (gameMode !== 'online' || e.button !== 0) return;
+             const pos = getCellCoordsFromEvent(e);
+             if(pos && onlineGameClient) onlineGameClient.handleCellClick(pos);
+        });
 
-// --- Mode: Online Game ---
+        resetButton.onclick = () => alert('온라인 게임은 서버에서 리셋해야 합니다.');
+    }
 
-function startOnlineGame() {
-    gameMode = 'online';
+    // --- Initial button listeners ---
+    const playLocalBtn = document.getElementById('play-local-btn');
+    const playOnlineBtn = document.getElementById('play-online-btn');
 
-    modeSelectionDiv.style.display = 'none';
-    onlineControlsDiv.style.display = 'block';
-    gameContainerDiv.style.display = 'flex';
-    
-    onlineGameClient = new GameClient();
-    onlineGameClient.setupMultiplayerUI(onlineControlsDiv);
-    
-    initializeUI();
-    
-    // Directly attach listener to the original boardWrapper
-    boardWrapper.addEventListener('mouseup', (e) => {
-         if (gameMode !== 'online') return; // Ensure this only runs in online mode
-         if (e.button === 0) { // Only left clicks
-            const pos = getCellCoordsFromEvent(e);
-            if(pos && onlineGameClient) onlineGameClient.handleCellClick(pos);
-         }
-    });
+    playLocalBtn.addEventListener('click', startLocalGame);
+    playOnlineBtn.addEventListener('click', startOnlineGame);
+});
 
-    resetButton.onclick = () => {
-        alert('온라인 게임은 서버에서 리셋해야 합니다.');
-    };
-}
 
+// --- Online Game Client Class ---
+// This class is self-contained and can be defined outside the load event
 class GameClient {
     constructor() {
         this.socket = null;
         this.gameId = null;
-        this.playerTeam = null; // '초' or '한'
-        this.gameState = {}; // Server is the source of truth
+        this.playerTeam = null;
+        this.gameState = {};
     }
 
     setupMultiplayerUI(container) {
@@ -227,6 +222,7 @@ class GameClient {
         });
         this.socket.on('update_state', (serverState) => {
             this.gameState = serverState;
+            // This needs access to renderBoard, which is fine since it's a global import
             renderBoard(this.gameState, this.playerTeam);
         });
         this.socket.on('player_disconnected', (data) => alert(data.message));
@@ -239,19 +235,11 @@ class GameClient {
             alert('먼저 게임을 생성하거나 참가해야 합니다.');
             return;
         }
+        // This needs access to the getCellCoordsFromEvent, which is now scoped inside 'load'
+        // But the 'pos' is already the correct coords passed from the 'mouseup' event listener
         this.socket.emit('handle_click', {
             game_id: this.gameId,
             pos: [pos.y, pos.x]
         });
     }
 }
-
-
-// --- Initial Setup ---
-window.addEventListener('load', () => {
-    const playLocalBtn = document.getElementById('play-local-btn');
-    const playOnlineBtn = document.getElementById('play-online-btn');
-
-    playLocalBtn.addEventListener('click', startLocalGame);
-    playOnlineBtn.addEventListener('click', startOnlineGame);
-});
