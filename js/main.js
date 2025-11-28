@@ -126,38 +126,39 @@ class GameClient {
         }
 
         const pieceAtPos = this.gameState.board_state[pos.y][pos.x];
+        const isAValidMove = this.gameState.valid_moves?.some(move => move[0] === pos.y && move[1] === pos.x);
 
-        // 1. 선택한 기물이 없고, 움직일 기물을 선택하려는 경우
-        if (!this.selectedPos) {
-            if (pieceAtPos && pieceAtPos.team === this.playerTeam) {
-                this.selectedPos = pos;
-                // UI 업데이트를 위해 보드 다시 렌더링
-                renderBoard(this.gameState, this.selectedPos, this.playerTeam);
-                console.log(`Selected piece at:`, pos);
-            } else {
-                console.log('움직일 수 있는 기물이 아니거나 빈 칸입니다.');
-            }
-        } 
-        // 2. 이미 기물을 선택했고, 이제 이동할 위치를 클릭한 경우
-        else {
-            // 같은 위치를 다시 클릭하면 선택 해제
-            if (this.selectedPos.y === pos.y && this.selectedPos.x === pos.x) {
-                this.selectedPos = null;
-                renderBoard(this.gameState, this.selectedPos, this.playerTeam);
-                console.log('Selection cancelled.');
-                return;
-            }
-            
-            console.log(`Attempting move from ${JSON.stringify(this.selectedPos)} to ${JSON.stringify(pos)}`);
-            
+        // If a piece is selected and the click is a valid move, make the move
+        if (this.selectedPos && isAValidMove) {
             this.socket.emit('make_move', {
                 game_id: this.gameId,
                 from_pos: [this.selectedPos.y, this.selectedPos.x],
                 to_pos: [pos.y, pos.x]
             });
-
-            // 서버로부터 update_state를 받으면 selectedPos는 자동으로 null이 됨
+            // The server response will clear selection and update the board
+            return;
         }
+
+        // If the click is on one of the player's own pieces, ask for its valid moves
+        if (pieceAtPos && pieceAtPos.team === this.playerTeam) {
+            this.selectedPos = pos;
+            this.socket.emit('get_valid_moves', {
+                game_id: this.gameId,
+                pos: [pos.y, pos.x]
+            });
+            // The server will respond with an update_state that includes valid_moves
+            // We also re-render locally to show the selection immediately
+            renderBoard(this.gameState, this.selectedPos, this.playerTeam);
+            return;
+        }
+
+        // If the click is anywhere else, clear the selection
+        this.selectedPos = null;
+        // Also clear valid moves from the last selection
+        if (this.gameState.valid_moves && this.gameState.valid_moves.length > 0) {
+            this.gameState.valid_moves = [];
+        }
+        renderBoard(this.gameState, this.selectedPos, this.playerTeam);
     }
 }
 
