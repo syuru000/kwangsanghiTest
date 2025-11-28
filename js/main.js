@@ -60,7 +60,7 @@ class GameClient {
         // !!! 중요 !!!
         // 이 URL을 실제 Replit 백엔드 주소로 변경해야 합니다.
         // 예: 'https://ksh-game-backend.your-username.replit.dev'
-        const backendUrl = 'https://9040d67a-de41-4b2f-ba09-6b8bbadc9774-00-21d4400b72co7.sisko.replit.dev/'; // 로컬 테스트용 주소
+        const backendUrl = 'http://127.0.0.1:5000'; // 로컬 테스트용 주소
         
         this.socket = io(backendUrl, {
             transports: ['websocket'] 
