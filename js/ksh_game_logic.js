@@ -627,7 +627,7 @@ class GameState {
 
     parse_fen(fen_string) {
         const board = Array(this.BOARD_HEIGHT_CELLS).fill(null).map(() => Array(this.BOARD_WIDTH_CELLS).fill(null));
-        const [piece_fen, moved_fen, group_fen] = fen_string.split('|');
+        const [piece_fen, moved_fen, group_fen, captured_group_fen] = fen_string.split('|');
         const rows = piece_fen.split('/');
         
         rows.forEach((row_str, y) => {
@@ -719,18 +719,47 @@ class GameState {
                 }
             });
         }
+
+        if (captured_group_fen) { // New section for captured_general_group
+            captured_group_fen.split('/').forEach((row_str, y) => {
+                if (y >= this.BOARD_HEIGHT_CELLS) return;
+                let x = 0;
+                let i = 0;
+                while (i < row_str.length) {
+                    if (x >= this.BOARD_WIDTH_CELLS) break;
+                    const char = row_str[i];
+                    if (!isNaN(parseInt(char))) {
+                        let num_str = "";
+                        let j = i;
+                        while (j < row_str.length && !isNaN(parseInt(row_str[j]))) {
+                            num_str += row_str[j];
+                            j++;
+                        }
+                        x += parseInt(num_str);
+                        i = j;
+                    } else {
+                        if (board[y][x] && char === 'f') { // 'f' means it had captured a general
+                            board[y][x].captured_general_group = `${board[y][x].team}_${board[y][x].general_group}`;
+                        }
+                        x++;
+                        i++;
+                    }
+                }
+            });
+        }
+
         return board;
     }
         
     generate_fen() {
-        let piece_rows = [], moved_rows = [], group_rows = [];
+        let piece_rows = [], moved_rows = [], group_rows = [], captured_group_rows = [];
         for (let r = 0; r < this.BOARD_HEIGHT_CELLS; r++) {
-            let empty_piece = 0, empty_moved = 0, empty_group = 0;
-            let row_piece = "", row_moved = "", row_group = "";
+            let empty_piece = 0, empty_moved = 0, empty_group = 0, empty_captured_group = 0;
+            let row_piece = "", row_moved = "", row_group = "", row_captured_group = "";
             for (let c = 0; c < this.BOARD_WIDTH_CELLS; c++) {
                 const piece = this.board_state[r][c];
                 if (piece === null) {
-                    empty_piece++; empty_moved++; empty_group++;
+                    empty_piece++; empty_moved++; empty_group++; empty_captured_group++;
                 } else {
                     if (empty_piece > 0) { row_piece += empty_piece; empty_piece = 0; }
                     let fen_char = PIECE_FEN_MAP[piece.name];
@@ -743,16 +772,22 @@ class GameState {
                     if (piece.general_group === '좌') row_group += 'L';
                     else if (piece.general_group === '우') row_group += 'R';
                     else row_group += 'C';
+
+                    if (empty_captured_group > 0) { row_captured_group += empty_captured_group; empty_captured_group = 0; }
+                    row_captured_group += piece.captured_general_group ? 'f' : '-'; // 'f' for flag, '-' for null
                 }
             }
             if (empty_piece > 0) row_piece += empty_piece;
             if (empty_moved > 0) row_moved += empty_moved;
             if (empty_group > 0) row_group += empty_group;
+            if (empty_captured_group > 0) row_captured_group += empty_captured_group;
+
             piece_rows.push(row_piece);
             moved_rows.push(row_moved);
             group_rows.push(row_group);
+            captured_group_rows.push(row_captured_group);
         }
-        return `${piece_rows.join('/')}|${moved_rows.join('/')}|${group_rows.join('/')}`;
+        return `${piece_rows.join('/')}|${moved_rows.join('/')}|${group_rows.join('/')}|${captured_group_rows.join('/')}`;
     }
 
     handle_click(pos) {
