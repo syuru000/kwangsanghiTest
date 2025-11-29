@@ -110,7 +110,11 @@ class Cha extends Piece {
 
         const palace_keys_to_check = ['초', '초_좌', '초_우', '한', '한_좌', '한_우'];
         for (const key of palace_keys_to_check) {
-            if (!game_state.is_in_palace(this.position, this.team, { check_palace_key: key })) continue;
+            const [y1_palace, x1_palace, y2_palace, x2_palace] = game_state.palaces[key];
+            // Check if the piece is inside this specific palace
+            if (!(y >= y1_palace && y <= y2_palace && x >= x1_palace && x <= x2_palace)) {
+                continue;
+            }
             
             const [y1, x1, y2, x2] = game_state.palaces[key];
             const cy = Math.floor((y1 + y2) / 2);
@@ -535,17 +539,25 @@ class Hu extends Piece {
         const potential_moves = Cha.prototype.get_valid_moves.call(this, board_state, game_state);
         
         let moves = [];
+        const opponent_team = this.team === '초' ? '한' : '초';
 
-        // 2. Filter moves to only include those within Hu's allowed operational area.
+        // Hu cannot move if it starts in the "outer-outer" area.
+        if (game_state.is_in_outer_outer_area(this.position, this.team)) {
+            return [];
+        }
+
+        // 2. Filter the potential moves based on Hu's specific restrictions.
         for (const move of potential_moves) {
-            // Hu's operational area is its own inner area, outer area, and all its palaces.
-            const is_in_my_inner_area = game_state.is_in_inner_area(move, this.team);
-            const is_in_my_outer_area = game_state.is_in_outer_area(move, this.team);
-            
-            // Call is_in_palace without check_main_palace_only to check all of team's palaces.
-            const is_in_my_palaces = game_state.is_in_palace(move, this.team);
+            // Restricted areas Hu cannot enter:
+            // 1. Its own "outer-outer" area.
+            const is_outside_allowed_zone = game_state.is_in_outer_outer_area(move, this.team);
+            // 2. The opponent's main palace. (Now correctly evaluated with the simplified is_in_palace)
+            const is_opponent_main_palace = game_state.is_in_palace(move, opponent_team, { check_main_palace_only: true });
+            // 3. The opponent's inner area.
+            const is_opponent_inner_area = game_state.is_in_inner_area(move, opponent_team);
 
-            if (is_in_my_inner_area || is_in_my_outer_area || is_in_my_palaces) {
+            // If the move is not into any of the restricted zones, it's valid.
+            if (!(is_outside_allowed_zone || is_opponent_main_palace || is_opponent_inner_area)) {
                 moves.push(move);
             }
         }
@@ -839,14 +851,6 @@ class GameState {
             if (!check_main_palace_only) {
                 palace_keys_to_check.push(`${team}_좌`, `${team}_우`);
             }
-        }
-        
-        if (this.selected_pos) {
-             const piece = this.board_state[this.selected_pos[0]][this.selected_pos[1]];
-             if (piece && (piece.name === 'Cha' || piece.name === 'Hu' || piece.name === 'Po' || piece.name === 'Jeon')) {
-                 palace_keys_to_check.push('초', '한', '초_좌', '초_우', '한_좌', '한_우');
-                 palace_keys_to_check = [...new Set(palace_keys_to_check)]; // Unique keys
-             }
         }
 
         for (const key of palace_keys_to_check) {
