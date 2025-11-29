@@ -235,27 +235,11 @@ class GameClient {
             alert('먼저 게임을 생성하거나 참가해야 합니다.');
             return;
         }
-
-        const BOARD_WIDTH = 15;
-        const BOARD_HEIGHT = 14;
-        let logicalPos = [pos.y, pos.x];
-        const isFlipped = this.playerTeam === '한';
-
-        console.log(`[DEBUG] handleCellClick: playerTeam = ${this.playerTeam}, isFlipped = ${isFlipped}`);
-        console.log(`[DEBUG] Visual position clicked: [${pos.y}, ${pos.x}]`);
-
-        if (isFlipped) {
-            logicalPos = [
-                BOARD_HEIGHT - 1 - pos.y,
-                BOARD_WIDTH - 1 - pos.x
-            ];
-        }
-
-        console.log(`[DEBUG] Logical position to send: [${logicalPos[0]}, ${logicalPos[1]}]`);
-
+        // The pos is the visual coordinate from the click event.
+        // The server is now responsible for converting it to a logical coordinate.
         this.socket.emit('handle_click', {
             game_id: this.gameId,
-            pos: logicalPos
+            pos: [pos.y, pos.x]
         });
     }   
 }
