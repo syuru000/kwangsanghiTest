@@ -41,15 +41,36 @@ export function initializeUI(cellClickHandler) {
  * @param {string} playerTeam The team of the current player ('초' or '한') for board orientation.
  */
 export function renderBoard(gameState, playerTeam) {
-    // --- DEBUGGING ---
-    console.log("Received new gameState to render:", gameState);
-    // ---
-
     if (!gameState || !gameState.board_state) {
         console.warn("Render called with invalid gameState.");
         return;
     }
-    
+
+    // --- Pre-process pieces for rendering ---
+    // This ensures that pieces from both local and online game states have the `is_deactivated` flag
+    // that the createPieceElement function relies on.
+    const processed_board_state = gameState.board_state.map(row => {
+        return row.map(piece => {
+            if (!piece) return null;
+
+            // If the flag already exists (from online state), do nothing.
+            if (piece.is_deactivated !== undefined) {
+                return piece;
+            }
+
+            // Otherwise, calculate it (for local game state).
+            const group_key = `${piece.team}_${piece.general_group}`;
+            const is_deactivated = piece.general_group !== '중앙' &&
+                                   piece.name !== 'Su' &&
+                                   (gameState.deactivated_groups && gameState.deactivated_groups[group_key]);
+
+            // Return a new object with the added property to avoid mutating the original state.
+            // Using Object.assign to keep the piece's prototype (methods).
+            return Object.assign(Object.create(Object.getPrototypeOf(piece)), piece, { is_deactivated: !!is_deactivated });
+        });
+    });
+    // ---
+
     gameBoard.dataset.playerTeam = playerTeam;
     const isFlipped = playerTeam === '한';
 
@@ -58,8 +79,8 @@ export function renderBoard(gameState, playerTeam) {
     dynamicElements.forEach(el => el.remove());
     annotationLayer.innerHTML = ''; // Clear SVG annotations
 
-    // Draw pieces
-    gameState.board_state.forEach((row) => {
+    // Draw pieces using the processed board state
+    processed_board_state.forEach((row) => {
         row.forEach((piece) => {
             if (piece) {
                 const pieceEl = createPieceElement(piece, isFlipped);
