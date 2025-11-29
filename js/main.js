@@ -241,6 +241,9 @@ class GameClient {
         let logicalPos = [pos.y, pos.x];
         const isFlipped = this.playerTeam === '한';
 
+        console.log(`[DEBUG] handleCellClick: playerTeam = ${this.playerTeam}, isFlipped = ${isFlipped}`);
+        console.log(`[DEBUG] Visual position clicked: [${pos.y}, ${pos.x}]`);
+
         if (isFlipped) {
             logicalPos = [
                 BOARD_HEIGHT - 1 - pos.y,
@@ -248,9 +251,11 @@ class GameClient {
             ];
         }
 
+        console.log(`[DEBUG] Logical position to send: [${logicalPos[0]}, ${logicalPos[1]}]`);
+
         this.socket.emit('handle_click', {
             game_id: this.gameId,
             pos: logicalPos
         });
-    }
+    }   
 }
