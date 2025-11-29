@@ -535,25 +535,17 @@ class Hu extends Piece {
         const potential_moves = Cha.prototype.get_valid_moves.call(this, board_state, game_state);
         
         let moves = [];
-        const opponent_team = this.team === '초' ? '한' : '초';
 
-        // Hu cannot move if it starts in the "outer-outer" area.
-        if (game_state.is_in_outer_outer_area(this.position, this.team)) {
-            return [];
-        }
-
-        // 2. Filter the potential moves based on Hu's specific restrictions.
+        // 2. Filter moves to only include those within Hu's allowed operational area.
         for (const move of potential_moves) {
-            // Restricted areas Hu cannot enter:
-            // 1. Its own "outer-outer" area.
-            const is_outside_allowed_zone = game_state.is_in_outer_outer_area(move, this.team);
-            // 2. The opponent's main palace.
-            const is_opponent_main_palace = game_state.is_in_palace(move, opponent_team, { check_main_palace_only: true });
-            // 3. The opponent's inner area.
-            const is_opponent_inner_area = game_state.is_in_inner_area(move, opponent_team);
+            // Hu's operational area is its own inner area, outer area, and all its palaces.
+            const is_in_my_inner_area = game_state.is_in_inner_area(move, this.team);
+            const is_in_my_outer_area = game_state.is_in_outer_area(move, this.team);
+            
+            // Call is_in_palace without check_main_palace_only to check all of team's palaces.
+            const is_in_my_palaces = game_state.is_in_palace(move, this.team);
 
-            // If the move is not into any of the restricted zones, it's valid.
-            if (!(is_outside_allowed_zone || is_opponent_main_palace || is_opponent_inner_area)) {
+            if (is_in_my_inner_area || is_in_my_outer_area || is_in_my_palaces) {
                 moves.push(move);
             }
         }
@@ -849,7 +841,7 @@ class GameState {
             }
         }
         
-        if (this.selected_pos && !check_main_palace_only) {
+        if (this.selected_pos) {
              const piece = this.board_state[this.selected_pos[0]][this.selected_pos[1]];
              if (piece && (piece.name === 'Cha' || piece.name === 'Hu' || piece.name === 'Po' || piece.name === 'Jeon')) {
                  palace_keys_to_check.push('초', '한', '초_좌', '초_우', '한_좌', '한_우');
