@@ -957,12 +957,6 @@ class GameState {
             this.deactivated_groups[group_key] = true;
             piece_to_move.captured_general_group = group_key;
         }
-        if (piece_to_move.captured_general_group && !captured_piece) { // Moving to an empty square
-             if(this.deactivated_groups[piece_to_move.captured_general_group]){
-                  this.deactivated_groups[piece_to_move.captured_general_group] = false;
-                  piece_to_move.captured_general_group = null;
-             }
-        }
 
 
         this.board_state[to_y][to_x] = piece_to_move;
