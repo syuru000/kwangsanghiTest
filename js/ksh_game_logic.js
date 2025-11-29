@@ -531,17 +531,35 @@ class Jeon extends Piece {
 class Hu extends Piece {
     get korean_name() { return '후'; }
     get_valid_moves(board_state, game_state) {
-        let potential_moves = Cha.prototype.get_valid_moves.call(this, board_state, game_state);
-        let moves = [];
+        // 1. Get all potential moves as if it were a Cha.
+        const potential_moves = Cha.prototype.get_valid_moves.call(this, board_state, game_state);
         
-        if (game_state.is_in_outer_outer_area(this.position, this.team)) return [];
+        let moves = [];
+        const opponent_team = this.team === '초' ? '한' : '초';
 
+        // Hu cannot move if it starts in the "outer-outer" area.
+        if (game_state.is_in_outer_outer_area(this.position, this.team)) {
+            return [];
+        }
+
+        // 2. Filter the potential moves based on Hu's specific restrictions.
         for (const move of potential_moves) {
-            if (!game_state.is_in_outer_outer_area(move, this.team)) {
+            // Restricted areas Hu cannot enter:
+            // 1. Its own "outer-outer" area.
+            const is_outside_allowed_zone = game_state.is_in_outer_outer_area(move, this.team);
+            // 2. The opponent's main palace.
+            const is_opponent_main_palace = game_state.is_in_palace(move, opponent_team, { check_main_palace_only: true });
+            // 3. The opponent's inner area.
+            const is_opponent_inner_area = game_state.is_in_inner_area(move, opponent_team);
+
+            // If the move is not into any of the restricted zones, it's valid.
+            if (!(is_outside_allowed_zone || is_opponent_main_palace || is_opponent_inner_area)) {
                 moves.push(move);
             }
         }
-        return moves;
+        
+        // Remove duplicates using Set
+        return Array.from(new Set(moves.map(JSON.stringify)), JSON.parse);
     }
 }
 
