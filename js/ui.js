@@ -41,6 +41,10 @@ export function initializeUI(cellClickHandler) {
  * @param {string} playerTeam The team of the current player ('초' or '한') for board orientation.
  */
 export function renderBoard(gameState, playerTeam) {
+    // --- DEBUGGING ---
+    console.log("Received new gameState to render:", gameState);
+    // ---
+
     if (!gameState || !gameState.board_state) {
         console.warn("Render called with invalid gameState.");
         return;
