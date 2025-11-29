@@ -235,11 +235,22 @@ class GameClient {
             alert('먼저 게임을 생성하거나 참가해야 합니다.');
             return;
         }
-        // This needs access to the getCellCoordsFromEvent, which is now scoped inside 'load'
-        // But the 'pos' is already the correct coords passed from the 'mouseup' event listener
+
+        const BOARD_WIDTH = 15;
+        const BOARD_HEIGHT = 14;
+        let logicalPos = [pos.y, pos.x];
+        const isFlipped = this.playerTeam === '한';
+
+        if (isFlipped) {
+            logicalPos = [
+                BOARD_HEIGHT - 1 - pos.y,
+                BOARD_WIDTH - 1 - pos.x
+            ];
+        }
+
         this.socket.emit('handle_click', {
             game_id: this.gameId,
-            pos: [pos.y, pos.x]
+            pos: logicalPos
         });
     }
 }
