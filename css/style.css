@@ -188,8 +188,3 @@ h1 {
 #record-panel {
     display: none; /* Hide record panel for now */
 }
-
-/* Board flipped for '한' player */
-#game-board[data-player-team="한"] .piece {
-    transform: rotate(180deg);
-}
