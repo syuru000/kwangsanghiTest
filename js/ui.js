@@ -58,7 +58,7 @@ export function renderBoard(gameState, playerTeam) {
     gameState.board_state.forEach((row) => {
         row.forEach((piece) => {
             if (piece) {
-                const pieceEl = createPieceElement(piece, gameState.deactivated_groups || {}, isFlipped);
+                const pieceEl = createPieceElement(piece, isFlipped);
                 gameBoard.appendChild(pieceEl);
             }
         });
@@ -106,14 +106,12 @@ function highlightElement(pos, cssClass, isFlipped) {
 }
 
 
-function createPieceElement(piece, deactivated_groups, isFlipped) {
+function createPieceElement(piece, isFlipped) {
     const pieceEl = document.createElement('div');
     pieceEl.classList.add('piece');
     
-    const groupKey = `${piece.team}_${piece.general_group}`;
-    const isDeactivated = piece.general_group !== '중앙' && piece.name !== 'Su' && deactivated_groups[groupKey];
-    
-    const imageName = isDeactivated
+    // Use the is_deactivated flag directly from the piece data sent by the server.
+    const imageName = piece.is_deactivated
         ? `비활성${piece.team}_${piece.korean_name}` 
         : `${piece.team}_${piece.korean_name}`;
 
