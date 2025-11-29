@@ -943,6 +943,11 @@ class GameState {
         // Update last move info *before* the board state changes
         this.lastMove = { from_pos, to_pos };
 
+        // If the captured piece had previously captured a Jang, reactivate the group it deactivated.
+        if (captured_piece && captured_piece.captured_general_group) {
+            this.deactivated_groups[captured_piece.captured_general_group] = false;
+        }
+
         if (captured_piece && captured_piece.name === 'Su') {
             this.game_over = true;
             this.winner = piece_to_move.team;
