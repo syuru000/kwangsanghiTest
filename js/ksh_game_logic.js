@@ -849,7 +849,7 @@ class GameState {
             }
         }
         
-        if (this.selected_pos) {
+        if (this.selected_pos && !check_main_palace_only) {
              const piece = this.board_state[this.selected_pos[0]][this.selected_pos[1]];
              if (piece && (piece.name === 'Cha' || piece.name === 'Hu' || piece.name === 'Po' || piece.name === 'Jeon')) {
                  palace_keys_to_check.push('초', '한', '초_좌', '초_우', '한_좌', '한_우');
