@@ -137,22 +137,44 @@ window.addEventListener('load', () => {
     function startOnlineGame() {
         gameMode = 'online';
 
+        // --- DOM Elements specific to this function ---
+        const surrenderButton = document.getElementById('surrender-button');
+        const homeButton = document.getElementById('home-button');
+        const resetButton = document.getElementById('reset-button');
+
+
+        // --- UI Updates ---
         modeSelectionDiv.style.display = 'none';
         onlineControlsDiv.style.display = 'block';
         gameContainerDiv.style.display = 'flex';
+        resetButton.style.display = 'none'; // Hide local reset button
+        surrenderButton.style.display = 'inline-block';
+        homeButton.style.display = 'inline-block';
         
+        // --- Client Setup ---
         onlineGameClient = new GameClient();
         onlineGameClient.setupMultiplayerUI(onlineControlsDiv);
         
         initializeUI();
         
+        // --- Event Listeners ---
         boardWrapper.addEventListener('mouseup', (e) => {
              if (gameMode !== 'online' || e.button !== 0) return;
              const pos = getCellCoordsFromEvent(e);
              if(pos && onlineGameClient) onlineGameClient.handleCellClick(pos);
         });
 
-        resetButton.onclick = () => alert('온라인 게임은 서버에서 리셋해야 합니다.');
+        homeButton.addEventListener('click', () => {
+            if (confirm('게임을 중단하고 홈 화면으로 돌아가시겠습니까?')) {
+                location.reload();
+            }
+        });
+
+        surrenderButton.addEventListener('click', () => {
+            if (confirm('정말로 기권하시겠습니까? 상대방이 승리하게 됩니다.')) {
+                onlineGameClient.surrender();
+            }
+        });
     }
 
     // --- Initial button listeners ---
@@ -226,7 +248,10 @@ class GameClient {
             renderBoard(this.gameState, this.playerTeam);
         });
         this.socket.on('player_disconnected', (data) => alert(data.message));
-        this.socket.on('game_over', (data) => alert(`게임 종료! ${data.winner}의 승리!`));
+        this.socket.on('game_over', (data) => {
+            const reason = data.reason ? ` (사유: ${data.reason})` : '';
+            alert(`게임 종료! ${data.winner}의 승리!${reason}`);
+        });
         this.socket.on('error', (data) => alert(`오류: ${data.message}`));
     }
 
@@ -241,5 +266,13 @@ class GameClient {
             game_id: this.gameId,
             pos: [pos.y, pos.x]
         });
-    }   
+    }
+
+    surrender() {
+        if (!this.socket || !this.gameId) {
+            alert('게임에 연결되어 있지 않아 기권할 수 없습니다.');
+            return;
+        }
+        this.socket.emit('surrender', { game_id: this.gameId });
+    }
 }

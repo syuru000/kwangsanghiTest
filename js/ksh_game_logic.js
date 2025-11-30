@@ -13,7 +13,7 @@ class Piece {
         this.has_moved = false;
         this.forward_dir = team === '초' ? -1 : 1;
         this.general_group = '중앙';
-        this.captured_general_group = null;
+        this.captured_general_group = [];
     }
 
     get_valid_moves(board_state, game_state) {
@@ -774,7 +774,10 @@ class GameState {
                     else row_group += 'C';
 
                     if (empty_captured_group > 0) { row_captured_group += empty_captured_group; empty_captured_group = 0; }
-                    row_captured_group += piece.captured_general_group ? 'f' : '-'; // 'f' for flag, '-' for null
+                    row_captured_group += (piece.captured_general_group && piece.captured_general_group.length > 0) 
+                        ? piece.captured_general_group.join(',') 
+                        : '-';
+                    row_captured_group += ';'; // Use a semicolon to separate entries
                 }
             }
             if (empty_piece > 0) row_piece += empty_piece;
@@ -785,7 +788,7 @@ class GameState {
             piece_rows.push(row_piece);
             moved_rows.push(row_moved);
             group_rows.push(row_group);
-            captured_group_rows.push(row_captured_group);
+            captured_group_rows.push(row_captured_group.slice(0, -1)); // Remove trailing semicolon
         }
         return `${piece_rows.join('/')}|${moved_rows.join('/')}|${group_rows.join('/')}|${captured_group_rows.join('/')}`;
     }
@@ -978,21 +981,27 @@ class GameState {
         // Update last move info *before* the board state changes
         this.lastMove = { from_pos, to_pos };
 
-        // If the captured piece had previously captured a Jang, reactivate the group it deactivated.
-        if (captured_piece && captured_piece.captured_general_group) {
-            this.deactivated_groups[captured_piece.captured_general_group] = false;
+        // If the captured piece had previously captured any Jangs, reactivate the corresponding groups.
+        if (captured_piece && captured_piece.captured_general_group && captured_piece.captured_general_group.length > 0) {
+            for (const group_key of captured_piece.captured_general_group) {
+                this.deactivated_groups[group_key] = false;
+            }
         }
 
         if (captured_piece && captured_piece.name === 'Su') {
             this.game_over = true;
             this.winner = piece_to_move.team;
         }
+        
+        // When a Jang is captured, deactivate its group and record it in the capturing piece's array.
         if (captured_piece && captured_piece.name === 'Jang') {
             const group_key = `${captured_piece.team}_${captured_piece.general_group}`;
             this.deactivated_groups[group_key] = true;
-            piece_to_move.captured_general_group = group_key;
+            // Add the key to the array if it's not already there.
+            if (!piece_to_move.captured_general_group.includes(group_key)) {
+                piece_to_move.captured_general_group.push(group_key);
+            }
         }
-
 
         this.board_state[to_y][to_x] = piece_to_move;
         this.board_state[from_y][from_x] = null;
