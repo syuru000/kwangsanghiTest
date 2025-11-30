@@ -6,22 +6,33 @@ body {
     color: #f0f0f0;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Re-added for overall content centering */
+    /* align-items: center; <-- Removed again for proper individual centering */
     margin: 0;
 }
 
 h1 {
-    margin: 20px 0;
+    margin: 20px auto; /* Centering h1 */
     text-align: center;
+}
+
+#mode-selection {
+    margin: 0 auto 20px auto; /* Centering and adding bottom margin */
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 #game-container {
     display: flex;
-    flex-wrap: wrap; /* Allow right-panel to wrap on smaller screens by default */
-    justify-content: center; /* Center items within the container by default */
-    max-width: 1200px; /* Limit max width on very wide screens */
-    width: 100%; /* Take full width up to max-width */
-    overflow-x: hidden; /* Hide horizontal overflow by default */
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto; /* Centering game-container itself */
+    overflow-x: hidden;
     padding: 10px;
     box-sizing: border-box;
 }
@@ -29,10 +40,11 @@ h1 {
 /* Media query for mobile devices */
 @media (max-width: 768px) {
     #game-container {
-        flex-wrap: nowrap; /* Prevent right-panel from wrapping on mobile for scrolling */
-        justify-content: flex-start; /* Align to the left for natural scrolling */
-        overflow-x: auto; /* Enable horizontal scrolling on mobile */
-        width: calc(100% - 20px); /* Adjust width for padding */
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        width: 100%; /* Take full width on mobile */
+        margin: 0; /* Remove auto margin on mobile */
     }
 }
 
