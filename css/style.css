@@ -6,23 +6,34 @@ body {
     color: #f0f0f0;
     display: flex;
     flex-direction: column;
-    /* align-items: center; <-- Removed to allow horizontal scrolling */
+    align-items: center; /* Re-added for overall content centering */
     margin: 0;
 }
 
 h1 {
     margin: 20px 0;
-    text-align: center; /* Ensure title remains centered */
+    text-align: center;
 }
 
 #game-container {
     display: flex;
-    flex-wrap: nowrap; /* Prevent right-panel from wrapping on small screens */
-    justify-content: flex-start; /* Align to the left for natural scrolling */
-    width: 100%;
-    overflow-x: auto; /* Enable horizontal scrolling */
-    padding: 10px; /* Add some padding */
+    flex-wrap: wrap; /* Allow right-panel to wrap on smaller screens by default */
+    justify-content: center; /* Center items within the container by default */
+    max-width: 1200px; /* Limit max width on very wide screens */
+    width: 100%; /* Take full width up to max-width */
+    overflow-x: hidden; /* Hide horizontal overflow by default */
+    padding: 10px;
     box-sizing: border-box;
+}
+
+/* Media query for mobile devices */
+@media (max-width: 768px) {
+    #game-container {
+        flex-wrap: nowrap; /* Prevent right-panel from wrapping on mobile for scrolling */
+        justify-content: flex-start; /* Align to the left for natural scrolling */
+        overflow-x: auto; /* Enable horizontal scrolling on mobile */
+        width: calc(100% - 20px); /* Adjust width for padding */
+    }
 }
 
 #board-wrapper {
