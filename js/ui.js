@@ -75,9 +75,15 @@ export function renderBoard(gameState, playerTeam) {
     const isFlipped = playerTeam === '한';
 
     // Clear all previous dynamic elements
-    const dynamicElements = gameBoard.querySelectorAll('.piece, .valid-move-dot, .selected, .check-highlight, .last-move-marker');
+    const dynamicElements = gameBoard.querySelectorAll('.piece, .valid-move-dot, .selected, .check-highlight');
     dynamicElements.forEach(el => el.remove());
-    annotationLayer.innerHTML = ''; // Clear SVG annotations
+    
+    // Reset and prepare the SVG layer with definitions for markers
+    annotationLayer.innerHTML = `<defs>
+        <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" /></marker>
+        <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" /></marker>
+        <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" /></marker>
+    </defs>`;
 
     // Draw pieces using the processed board state
     processed_board_state.forEach((row) => {
@@ -207,15 +213,6 @@ function drawLastMoveIndicator(lastMove, isFlipped) {
     const x2 = to_x * CELL_SIZE + CELL_SIZE / 2;
     const y2 = to_y * CELL_SIZE + CELL_SIZE / 2;
 
-    // Ensure defs are present for arrowheads
-    if (!annotationLayer.querySelector('defs')) {
-        annotationLayer.innerHTML = `<defs>
-           <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" /></marker>
-           <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" /></marker>
-           <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" /></marker>
-       </defs>`;
-    }
-
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1);
     line.setAttribute('y1', y1);
@@ -230,19 +227,7 @@ function drawLastMoveIndicator(lastMove, isFlipped) {
 }
 
 function drawAnnotations(gameState) {
-    // Define arrowhead markers for different colors
-    const defs = `<defs>
-        <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
-            <polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" />
-        </marker>
-        <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
-            <polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" />
-        </marker>
-        <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
-            <polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" />
-        </marker>
-    </defs>`;
-    annotationLayer.innerHTML = defs;
+    // This function now assumes the <defs> are already present in annotationLayer
 
     // Draw circles
     (gameState.drawnCircles || []).forEach(pos => {
