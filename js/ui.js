@@ -196,9 +196,37 @@ function updateInfoPanel(gameState) {
 
 function drawLastMoveIndicator(lastMove, isFlipped) {
     const { from_pos, to_pos } = lastMove;
-    [from_pos, to_pos].forEach(pos => {
-        highlightElement(pos, 'last-move-marker', isFlipped);
-    });
+
+    const from_y = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - from_pos[0]) : from_pos[0];
+    const from_x = isFlipped ? (BOARD_WIDTH_CELLS - 1 - from_pos[1]) : from_pos[1];
+    const to_y = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - to_pos[0]) : to_pos[0];
+    const to_x = isFlipped ? (BOARD_WIDTH_CELLS - 1 - to_pos[1]) : to_pos[1];
+
+    const x1 = from_x * CELL_SIZE + CELL_SIZE / 2;
+    const y1 = from_y * CELL_SIZE + CELL_SIZE / 2;
+    const x2 = to_x * CELL_SIZE + CELL_SIZE / 2;
+    const y2 = to_y * CELL_SIZE + CELL_SIZE / 2;
+
+    // Ensure defs are present for arrowheads
+    if (!annotationLayer.querySelector('defs')) {
+        annotationLayer.innerHTML = `<defs>
+           <marker id="arrowhead-green" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#20C20E" /></marker>
+           <marker id="arrowhead-red" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FF4136" /></marker>
+           <marker id="arrowhead-yellow" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#FFDC00" /></marker>
+       </defs>`;
+    }
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', '#FFDC00'); // Yellow
+    line.setAttribute('stroke-width', '4');
+    line.setAttribute('opacity', '0.7');
+    line.setAttribute('marker-end', 'url(#arrowhead-yellow)');
+    line.classList.add('last-move-arrow'); // Add a class to identify this arrow
+    annotationLayer.appendChild(line);
 }
 
 function drawAnnotations(gameState) {
