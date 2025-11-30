@@ -6,18 +6,23 @@ body {
     color: #f0f0f0;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    /* align-items: center; <-- Removed to allow horizontal scrolling */
     margin: 0;
 }
 
 h1 {
     margin: 20px 0;
+    text-align: center; /* Ensure title remains centered */
 }
 
 #game-container {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap; /* Prevent right-panel from wrapping on small screens */
+    justify-content: flex-start; /* Align to the left for natural scrolling */
+    width: 100%;
+    overflow-x: auto; /* Enable horizontal scrolling */
+    padding: 10px; /* Add some padding */
+    box-sizing: border-box;
 }
 
 #board-wrapper {
