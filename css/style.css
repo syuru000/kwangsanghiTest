@@ -41,7 +41,7 @@ h1 {
 @media (max-width: 768px) {
     #game-container {
         flex-wrap: nowrap;
-        justify-content: flex-start;
+        justify-content: center;
         overflow-x: auto;
         width: 100%; /* Take full width on mobile */
         margin: 0; /* Remove auto margin on mobile */
