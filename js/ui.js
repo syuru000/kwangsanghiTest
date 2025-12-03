@@ -40,8 +40,14 @@ export function resizeBoard() {
     gameBoard.style.width = `${newWidth}px`;
     gameBoard.style.height = `${newHeight}px`;
     
-    // The annotation layer is centered by CSS. We just need to set its size
-    // to match the game board. The transform: translate in CSS will handle centering.
+    // Explicitly set the annotation layer's size and position to match the game board.
+    // This is more robust than relying on CSS centering which can be tricky.
+    annotationLayer.style.width = `${newWidth}px`;
+    annotationLayer.style.height = `${newHeight}px`;
+    annotationLayer.style.top = `${gameBoard.offsetTop}px`;
+    annotationLayer.style.left = `${gameBoard.offsetLeft}px`;
+    
+    // Also set the SVG's internal coordinate system
     annotationLayer.setAttribute('width', newWidth);
     annotationLayer.setAttribute('height', newHeight);
     annotationLayer.setAttribute('viewBox', `0 0 ${newWidth} ${newHeight}`);
