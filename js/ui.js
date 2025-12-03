@@ -151,7 +151,7 @@ function createPieceElement(piece, isFlipped) {
     const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - logicalY) : logicalY;
     const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - logicalX) : logicalX;
 
-    pieceEl.style.backgroundImage = `url('images/${imageName}.png')`;
+    pieceEl.style.backgroundImage = `url('images/svg/${imageName}.svg')`;
     pieceEl.style.left = `${visualX * uiState.cellSize}px`;
     pieceEl.style.top = `${visualY * uiState.cellSize}px`;
     pieceEl.style.width = `${uiState.cellSize}px`;
