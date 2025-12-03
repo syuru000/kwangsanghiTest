@@ -1,16 +1,17 @@
 // C:\Users\rua06\testBot\discord_Py_game\KSH_betaWeb\js\main.js
 
-import { initializeUI, renderBoard } from './ui.js';
+import { initializeUI, renderBoard, resizeBoard } from './ui.js';
+import { uiState, updateCellSize } from './ui_state.js';
 
 // --- This will be initialized on window load ---
-let gameMode = null; 
+let gameMode = null;
 let localGameState = null;
 let onlineGameClient = null;
+let resizeTimer;
 
 // --- Main setup on window load ---
 window.addEventListener('load', () => {
     
-    // --- DOM Elements (Defined safely after DOM is loaded) ---
     const modeSelectionDiv = document.getElementById('mode-selection');
     const gameContainerDiv = document.getElementById('game-container');
     const onlineControlsDiv = document.getElementById('online-controls');
@@ -19,21 +20,29 @@ window.addEventListener('load', () => {
     const annotationLayer = document.getElementById('annotation-layer');
     const gameBoard = document.getElementById('game-board');
 
-    // --- Drawing State (for Local Play) ---
     let isDrawing = false;
     let drawingStartPos = null;
     let tempArrow = null;
     let mouseDownTime = 0;
-    const CLICK_THRESHOLD = 200; // ms to differentiate click from drag
+    const CLICK_THRESHOLD = 200;
 
-    // --- Utility Functions ---
     function getCellCoordsFromEvent(e) {
         if (!gameBoard) return null;
         const rect = gameBoard.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / 40);
-        const y = Math.floor((e.clientY - rect.top) / 40);
+        const x = Math.floor((e.clientX - rect.left) / uiState.cellSize);
+        const y = Math.floor((e.clientY - rect.top) / uiState.cellSize);
         if (y < 0 || y >= 14 || x < 0 || x >= 15) return null;
         return { y, x };
+    }
+    
+    function resizeAndRender() {
+        updateCellSize();
+        resizeBoard();
+        if (gameMode === 'local' && localGameState) {
+            renderBoard(localGameState, '초');
+        } else if (gameMode === 'online' && onlineGameClient && onlineGameClient.gameState) {
+             renderBoard(onlineGameClient.gameState, onlineGameClient.playerTeam);
+        }
     }
 
     // --- Local Game Handlers ---
@@ -58,10 +67,10 @@ window.addEventListener('load', () => {
 
         const color = e.shiftKey ? "#FFDC00" : "#20C20E";
         const markerId = e.shiftKey ? "yellow" : "green";
-        const x1 = drawingStartPos.x * 40 + 20;
-        const y1 = drawingStartPos.y * 40 + 20;
-        const x2 = currentPos.x * 40 + 20;
-        const y2 = currentPos.y * 40 + 20;
+        const x1 = drawingStartPos.x * uiState.cellSize + (uiState.cellSize / 2);
+        const y1 = drawingStartPos.y * uiState.cellSize + (uiState.cellSize / 2);
+        const x2 = currentPos.x * uiState.cellSize + (uiState.cellSize / 2);
+        const y2 = currentPos.y * uiState.cellSize + (uiState.cellSize / 2);
 
         if (!annotationLayer.querySelector('defs')) {
              annotationLayer.innerHTML = `<defs>
@@ -118,13 +127,12 @@ window.addEventListener('load', () => {
         gameContainerDiv.style.display = 'flex';
         
         initializeUI();
+        resizeAndRender(); // Initial size calculation
         
         boardWrapper.addEventListener('mousedown', handleBoardMouseDown);
         boardWrapper.addEventListener('mouseup', handleBoardMouseUp);
         boardWrapper.addEventListener('mousemove', handleBoardMouseMove);
         boardWrapper.addEventListener('contextmenu', e => e.preventDefault());
-
-        renderBoard(localGameState, '초');
 
         resetButton.onclick = () => {
             if (confirm('현재 게임을 리셋하고 새 게임을 시작하시겠습니까?')) {
@@ -137,27 +145,23 @@ window.addEventListener('load', () => {
     function startOnlineGame() {
         gameMode = 'online';
 
-        // --- DOM Elements specific to this function ---
         const surrenderButton = document.getElementById('surrender-button');
         const homeButton = document.getElementById('home-button');
         const resetButton = document.getElementById('reset-button');
 
-
-        // --- UI Updates ---
         modeSelectionDiv.style.display = 'none';
         onlineControlsDiv.style.display = 'block';
         gameContainerDiv.style.display = 'flex';
-        resetButton.style.display = 'none'; // Hide local reset button
+        resetButton.style.display = 'none';
         surrenderButton.style.display = 'inline-block';
         homeButton.style.display = 'inline-block';
         
-        // --- Client Setup ---
         onlineGameClient = new GameClient();
         onlineGameClient.setupMultiplayerUI(onlineControlsDiv);
         
         initializeUI();
+        resizeAndRender(); // Initial size calculation
         
-        // --- Event Listeners ---
         boardWrapper.addEventListener('mouseup', (e) => {
              if (gameMode !== 'online' || e.button !== 0) return;
              const pos = getCellCoordsFromEvent(e);
@@ -177,17 +181,20 @@ window.addEventListener('load', () => {
         });
     }
 
-    // --- Initial button listeners ---
     const playLocalBtn = document.getElementById('play-local-btn');
     const playOnlineBtn = document.getElementById('play-online-btn');
 
     playLocalBtn.addEventListener('click', startLocalGame);
     playOnlineBtn.addEventListener('click', startOnlineGame);
+
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(resizeAndRender, 150); // Debounce resize event
+    });
 });
 
 
 // --- Online Game Client Class ---
-// This class is self-contained and can be defined outside the load event
 class GameClient {
     constructor() {
         this.socket = null;
@@ -244,7 +251,6 @@ class GameClient {
         });
         this.socket.on('update_state', (serverState) => {
             this.gameState = serverState;
-            // This needs access to renderBoard, which is fine since it's a global import
             renderBoard(this.gameState, this.playerTeam);
         });
         this.socket.on('player_disconnected', (data) => alert(data.message));
@@ -260,8 +266,6 @@ class GameClient {
             alert('먼저 게임을 생성하거나 참가해야 합니다.');
             return;
         }
-        // The pos is the visual coordinate from the click event.
-        // The server is now responsible for converting it to a logical coordinate.
         this.socket.emit('handle_click', {
             game_id: this.gameId,
             pos: [pos.y, pos.x]

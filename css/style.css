@@ -6,17 +6,18 @@ body {
     color: #f0f0f0;
     display: flex;
     flex-direction: column;
-    /* align-items: center; <-- Removed again for proper individual centering */
     margin: 0;
+    /* Touch-action none prevents pull-to-refresh or other browser gestures on the game area */
+    touch-action: none;
 }
 
 h1 {
-    margin: 20px auto; /* Centering h1 */
+    margin: 20px auto;
     text-align: center;
 }
 
 #mode-selection {
-    margin: 0 auto 20px auto; /* Centering and adding bottom margin */
+    margin: 0 auto 20px auto;
     background-color: #3a3a3a;
     padding: 15px;
     border-radius: 8px;
@@ -27,34 +28,23 @@ h1 {
 
 #game-container {
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
+    align-items: flex-start; /* Align items to the top */
     max-width: 1200px;
     width: 100%;
-    margin: 0 auto; /* Centering game-container itself */
-    overflow-x: hidden;
+    margin: 0 auto;
     padding: 10px;
     box-sizing: border-box;
 }
 
-/* Media query for mobile devices */
-@media (max-width: 768px) {
-    #game-container {
-        flex-wrap: nowrap;
-        justify-content: flex-start;
-        overflow-x: auto;
-        width: 100%; /* Take full width on mobile */
-        margin: 0; /* Remove auto margin on mobile */
-    }
-}
-
 #board-wrapper {
-    position: relative; /* Needed for the annotation layer to sit on top */
+    position: relative;
+    width: auto; /* Let the content define the width */
+    flex-shrink: 0; /* Don't shrink the board wrapper */
 }
 
 #game-board {
-    width: calc(40px * 15); /* (CELL_SIZE * 15) */
-    height: calc(40px * 14); /* (CELL_SIZE * 14) */
+    /* Width and height are now set by JavaScript */
     display: grid;
     grid-template-columns: repeat(15, 1fr);
     grid-template-rows: repeat(14, 1fr);
@@ -70,22 +60,20 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; /* Clicks go through the SVG layer */
+    pointer-events: none;
 }
 
 .cell {
-    width: 40px;
-    height: 40px;
+    /* Width and height are implicitly set by the grid-template-rows/columns */
     box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative; /* For child positioning */
+    position: relative;
 }
 
 .piece {
-    width: 90%;
-    height: 90%;
+    /* width and height are set by JS */
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -95,23 +83,9 @@ h1 {
 }
 
 .selected {
-    width: 100%;
-    height: 100%;
     border-radius: 50%;
-    background-color: rgba(98, 168, 239, 0.5); /* Blueish highlight for selection */
+    background-color: rgba(98, 168, 239, 0.5);
     box-sizing: border-box;
-}
-
-.last-move-marker {
-    width: 90%;
-    height: 90%;
-    position: absolute;
-    top: 5%;
-    left: 5%;
-    border-radius: 50%;
-    box-sizing: border-box;
-    background-color: rgba(255, 220, 0, 0.4); /* Yellow highlight for last move */
-    pointer-events: none;
 }
 
 .check-highlight {
@@ -130,15 +104,14 @@ h1 {
 }
 
 .valid-move-dot {
-    width: 15px;
-    height: 15px;
+    /* width and height set by JS */
     border-radius: 50%;
     background-color: rgba(45, 201, 55, 0.6);
-    pointer-events: none; /* Allows clicking through the dot */
+    pointer-events: none;
 }
 
 .valid-move-dot.capture {
-    background-color: rgba(239, 62, 54, 0.5); /* Reddish for captures */
+    background-color: rgba(239, 62, 54, 0.5);
 }
 
 #right-panel {
@@ -147,6 +120,7 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    flex-shrink: 0; /* Prevent the panel from shrinking */
 }
 
 #info-panel, #record-panel {
@@ -168,7 +142,6 @@ h1 {
     min-height: 20px;
 }
 
-/* Controls styling */
 #mode-selection, #online-controls {
     background-color: #3a3a3a;
     padding: 15px;
@@ -179,7 +152,7 @@ h1 {
     align-items: center;
 }
 
-#mode-selection button, #online-controls button, #reset-button {
+#mode-selection button, #online-controls button, #reset-button, #surrender-button, #home-button {
     padding: 8px 12px;
     font-size: 1em;
     border-radius: 4px;
@@ -189,7 +162,7 @@ h1 {
     cursor: pointer;
 }
 
-#mode-selection button:hover, #online-controls button:hover, #reset-button:hover {
+#mode-selection button:hover, #online-controls button:hover, #reset-button:hover, #surrender-button:hover, #home-button:hover {
     background-color: #6a6a6a;
 }
 
@@ -201,18 +174,37 @@ h1 {
     color: #f0f0f0;
 }
 
-#online-controls #game-id-display {
-    margin-left: auto;
-    font-style: italic;
-    color: #aaa;
-}
-
 #reset-button {
     width: 100%;
     margin-top: 10px;
-    display: block; /* Make reset button visible */
+    display: block;
 }
 
 #record-panel {
-    display: none; /* Hide record panel for now */
+    display: flex; /* Make it visible again */
+    flex-direction: column;
+}
+
+/* --- Mobile Responsive Layout --- */
+@media (max-width: 768px) {
+    body {
+        /* Prevent horizontal scroll bouncing on iOS */
+        overflow-x: hidden;
+    }
+
+    #game-container {
+        flex-direction: column;
+        align-items: center; /* Center the board and panel */
+        padding: 5px;
+    }
+
+    #board-wrapper {
+        width: 100%; /* Board wrapper takes full width */
+    }
+
+    #right-panel {
+        width: 100%; /* Panel takes full width */
+        margin-left: 0;
+        margin-top: 20px; /* Add space between board and panel */
+    }
 }
