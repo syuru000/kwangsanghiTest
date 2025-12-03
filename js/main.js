@@ -29,6 +29,7 @@ window.addEventListener('load', () => {
     function getCellCoordsFromEvent(e) {
         if (!gameBoard) return null;
         const rect = gameBoard.getBoundingClientRect();
+        if (uiState.cellSize === 0) return null; // Prevent division by zero
         const x = Math.floor((e.clientX - rect.left) / uiState.cellSize);
         const y = Math.floor((e.clientY - rect.top) / uiState.cellSize);
         if (y < 0 || y >= 14 || x < 0 || x >= 15) return null;
@@ -228,7 +229,6 @@ class GameClient {
             const gameIdToJoin = gameIdInput.value.trim();
             if (gameIdToJoin) {
                 if (!this.socket) this.setupSocketConnections();
-                this.gameId = gameIdToJoin;
                 this.socket.emit('join_game', { game_id: gameIdToJoin });
             } else {
                 alert('참가할 게임의 ID를 입력하세요.');
@@ -240,24 +240,37 @@ class GameClient {
         const backendUrl = 'https://9040d67a-de41-4b2f-ba09-6b8bbadc9774-00-21d4400b72co7.sisko.replit.dev';
         this.socket = io(backendUrl, { transports: ['websocket'] });
         this.socket.on('connect', () => console.log('서버에 연결되었습니다. ID:', this.socket.id));
+        
         this.socket.on('game_created', (data) => {
             this.gameId = data.game_id;
-            this.playerTeam = '초';
+            // Team is now assigned by 'game_joined' event
             document.getElementById('game-id-display').textContent = `게임 ID: ${this.gameId}. 복사해서 친구에게 전달하세요.`;
         });
+        
+        this.socket.on('game_joined', (data) => {
+            this.gameId = data.game_id;
+            this.playerTeam = data.team; // Server is the source of truth
+            console.log(`Successfully joined game ${this.gameId} as team ${this.playerTeam}`);
+            document.getElementById('game-id-display').textContent = `게임 참가 완료! 당신은 ${this.playerTeam}나라입니다.`;
+        });
+
         this.socket.on('game_started', (data) => {
-             if (!this.playerTeam) this.playerTeam = '한';
+             // Team is already set, just update the message
              document.getElementById('game-id-display').textContent = `게임 시작! 당신은 ${this.playerTeam}나라입니다.`;
         });
+
         this.socket.on('update_state', (serverState) => {
             this.gameState = serverState;
             renderBoard(this.gameState, this.playerTeam);
         });
+
         this.socket.on('player_disconnected', (data) => alert(data.message));
+        
         this.socket.on('game_over', (data) => {
             const reason = data.reason ? ` (사유: ${data.reason})` : '';
             alert(`게임 종료! ${data.winner}의 승리!${reason}`);
         });
+
         this.socket.on('error', (data) => alert(`오류: ${data.message}`));
     }
 
