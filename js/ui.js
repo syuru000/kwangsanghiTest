@@ -99,7 +99,8 @@ export function renderBoard(gameState, playerTeam) {
         });
     });
 
-    if (gameState.selected_pos) {
+    // Highlight selected piece, but only if it's the current player's turn
+    if (gameState.selected_pos && gameState.current_turn === playerTeam) {
         highlightElement(gameState.selected_pos, 'selected', isFlipped);
     }
 
