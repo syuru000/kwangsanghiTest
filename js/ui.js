@@ -9,6 +9,8 @@ const turnIndicator = document.getElementById('turn-indicator');
 const checkIndicator = document.getElementById('check-indicator');
 const gameOverMessage = document.getElementById('game-over-message');
 const annotationLayer = document.getElementById('annotation-layer');
+const moveHistoryContainer = document.getElementById('move-history');
+
 
 let onCellClickCallback = null;
 
@@ -37,10 +39,12 @@ export function resizeBoard() {
 
     gameBoard.style.width = `${newWidth}px`;
     gameBoard.style.height = `${newHeight}px`;
-
-    annotationLayer.setAttribute('width', newWidth);
-    annotationLayer.setAttribute('height', newHeight);
-    annotationLayer.setAttribute('viewBox', `0 0 ${newWidth} ${newHeight}`);
+    
+    const boardWrapper = document.getElementById('board-wrapper');
+    annotationLayer.style.width = `${newWidth}px`;
+    annotationLayer.style.height = `${newHeight}px`;
+    annotationLayer.style.top = `${gameBoard.offsetTop}px`;
+    annotationLayer.style.left = `${gameBoard.offsetLeft}px`;
 }
 
 
@@ -105,10 +109,11 @@ export function renderBoard(gameState, playerTeam) {
         drawLastMoveIndicator(gameState.lastMove, isFlipped);
     }
     if (gameState.drawnArrows || gameState.drawnCircles) {
-        drawAnnotations(gameState);
+        drawAnnotations(gameState, isFlipped);
     }
 
     updateInfoPanel(gameState);
+    renderMoveHistory(gameState.move_history || []);
 }
 
 function highlightElement(pos, cssClass, isFlipped) {
@@ -120,7 +125,6 @@ function highlightElement(pos, cssClass, isFlipped) {
     if(cell) {
          const highlight = document.createElement('div');
          highlight.className = cssClass;
-         // Make highlight div also scale with cell size
          highlight.style.width = `${uiState.cellSize}px`;
          highlight.style.height = `${uiState.cellSize}px`;
          cell.appendChild(highlight);
@@ -190,18 +194,60 @@ function updateInfoPanel(gameState) {
     }
 }
 
+function renderMoveHistory(moveHistory) {
+    if (!moveHistoryContainer) return;
+    moveHistoryContainer.innerHTML = '';
+
+    for (let i = 0; i < moveHistory.length; i += 2) {
+        const moveNumber = (i / 2) + 1;
+        const choMove = moveHistory[i];
+        const hanMove = (i + 1 < moveHistory.length) ? moveHistory[i + 1] : null;
+
+        const movePairDiv = document.createElement('div');
+        movePairDiv.classList.add('move-pair');
+
+        const moveNumSpan = document.createElement('span');
+        moveNumSpan.classList.add('move-number');
+        moveNumSpan.textContent = `${moveNumber}. `;
+
+        const choSpan = document.createElement('span');
+        choSpan.classList.add('move-cho');
+        choSpan.textContent = choMove.notation;
+
+        movePairDiv.appendChild(moveNumSpan);
+        movePairDiv.appendChild(choSpan);
+
+        if (hanMove) {
+            const hanSpan = document.createElement('span');
+            hanSpan.classList.add('move-han');
+            hanSpan.textContent = ` ${hanMove.notation}`;
+            movePairDiv.appendChild(hanSpan);
+        }
+
+        moveHistoryContainer.appendChild(movePairDiv);
+    }
+    
+    moveHistoryContainer.scrollTop = moveHistoryContainer.scrollHeight;
+}
+
+
 function drawLastMoveIndicator(lastMove, isFlipped) {
     const { from_pos, to_pos } = lastMove;
 
-    const from_y = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - from_pos[0]) : from_pos[0];
-    const from_x = isFlipped ? (BOARD_WIDTH_CELLS - 1 - from_pos[1]) : from_pos[1];
-    const to_y = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - to_pos[0]) : to_pos[0];
-    const to_x = isFlipped ? (BOARD_WIDTH_CELLS - 1 - to_pos[1]) : to_pos[1];
+    const from_y_logic = from_pos[0];
+    const from_x_logic = from_pos[1];
+    const to_y_logic = to_pos[0];
+    const to_x_logic = to_pos[1];
 
-    const x1 = from_x * uiState.cellSize + uiState.cellSize / 2;
-    const y1 = from_y * uiState.cellSize + uiState.cellSize / 2;
-    const x2 = to_x * uiState.cellSize + uiState.cellSize / 2;
-    const y2 = to_y * uiState.cellSize + uiState.cellSize / 2;
+    const from_y_visual = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - from_y_logic) : from_y_logic;
+    const from_x_visual = isFlipped ? (BOARD_WIDTH_CELLS - 1 - from_x_logic) : from_x_logic;
+    const to_y_visual = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - to_y_logic) : to_y_logic;
+    const to_x_visual = isFlipped ? (BOARD_WIDTH_CELLS - 1 - to_x_logic) : to_x_logic;
+
+    const x1 = from_x_visual * uiState.cellSize + uiState.cellSize / 2;
+    const y1 = from_y_visual * uiState.cellSize + uiState.cellSize / 2;
+    const x2 = to_x_visual * uiState.cellSize + uiState.cellSize / 2;
+    const y2 = to_y_visual * uiState.cellSize + uiState.cellSize / 2;
 
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1);
@@ -216,11 +262,13 @@ function drawLastMoveIndicator(lastMove, isFlipped) {
     annotationLayer.appendChild(line);
 }
 
-function drawAnnotations(gameState) {
+function drawAnnotations(gameState, isFlipped) {
     (gameState.drawnCircles || []).forEach(pos => {
+        const visualX = isFlipped ? (BOARD_WIDTH_CELLS - 1 - pos.x) : pos.x;
+        const visualY = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - pos.y) : pos.y;
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        const cx = pos.x * uiState.cellSize + uiState.cellSize / 2;
-        const cy = pos.y * uiState.cellSize + uiState.cellSize / 2;
+        const cx = visualX * uiState.cellSize + uiState.cellSize / 2;
+        const cy = visualY * uiState.cellSize + uiState.cellSize / 2;
         circle.setAttribute('cx', cx);
         circle.setAttribute('cy', cy);
         circle.setAttribute('r', uiState.cellSize * 0.45);
@@ -233,11 +281,16 @@ function drawAnnotations(gameState) {
 
     (gameState.drawnArrows || []).forEach(arrow => {
         const { startPos, endPos, color } = arrow;
+        const startXVisual = isFlipped ? (BOARD_WIDTH_CELLS - 1 - startPos.x) : startPos.x;
+        const startYVisual = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - startPos.y) : startPos.y;
+        const endXVisual = isFlipped ? (BOARD_WIDTH_CELLS - 1 - endPos.x) : endPos.x;
+        const endYVisual = isFlipped ? (BOARD_HEIGHT_CELLS - 1 - endPos.y) : endPos.y;
+
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        const x1 = startPos.x * uiState.cellSize + uiState.cellSize / 2;
-        const y1 = startPos.y * uiState.cellSize + uiState.cellSize / 2;
-        const x2 = endPos.x * uiState.cellSize + uiState.cellSize / 2;
-        const y2 = endPos.y * uiState.cellSize + uiState.cellSize / 2;
+        const x1 = startXVisual * uiState.cellSize + uiState.cellSize / 2;
+        const y1 = startYVisual * uiState.cellSize + uiState.cellSize / 2;
+        const x2 = endXVisual * uiState.cellSize + uiState.cellSize / 2;
+        const y2 = endYVisual * uiState.cellSize + uiState.cellSize / 2;
         
         const markerColorId = color === '#FF4136' ? 'red' : (color === '#FFDC00' ? 'yellow' : 'green');
 
