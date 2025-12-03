@@ -1,4 +1,228 @@
+/* C:\Users\rua06\testBot\discord_Py_game\KSH_betaWeb\css\style.css */
 
+body {
+    font-family: 'Malgun Gothic', sans-serif;
+    background-color: #2c2c2c;
+    color: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    touch-action: none;
+    overflow-y: auto; /* Allow vertical scroll for mobile layout */
+}
+
+h1 {
+    margin: 20px auto;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+#mode-selection {
+    margin: 0 auto 20px auto;
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#game-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+#board-wrapper {
+    position: relative;
+    /* Let flexbox determine the size */
+    flex: 1 1 auto;
+    min-width: 0; /* Fix for flex items overflowing */
+    display: flex; /* Use flex to center the board if there's extra space */
+    justify-content: center;
+    align-items: center;
+}
+
+#game-board {
+    /* Width and height are now set by JavaScript */
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(14, 1fr);
+    background-image: url('../images/board.png');
+    background-size: cover;
+    border: 2px solid #5a3a22;
+    position: relative;
+}
+
+#annotation-layer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.cell {
+    /* Width and height are implicitly set by the grid-template-rows/columns */
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.piece {
+    /* width and height are set by JS */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none; 
+    position: absolute;
+    transition: top 0.3s ease-in-out, left 0.3s ease-in-out, transform 0.1s ease-out;
+}
+
+.selected {
+    border-radius: 50%;
+    background-color: rgba(98, 168, 239, 0.5);
+    box-sizing: border-box;
+}
+
+.check-highlight {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: rgba(255, 0, 0, 0.3);
+    box-sizing: border-box;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0.3; }
+    70% { transform: scale(1.1); opacity: 0.5; }
+    100% { transform: scale(0.9); opacity: 0.3; }
+}
+
+.valid-move-dot {
+    /* width and height set by JS */
+    border-radius: 50%;
+    background-color: rgba(45, 201, 55, 0.6);
+    pointer-events: none;
+}
+
+.valid-move-dot.capture {
+    background-color: rgba(239, 62, 54, 0.5);
+}
+
+#right-panel {
+    width: 250px;
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex-shrink: 0;
+}
+
+#info-panel, #record-panel {
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+#turn-indicator {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+#check-indicator, #game-over-message {
+    color: #ff5555;
+    font-weight: bold;
+    min-height: 20px;
+}
+
+#mode-selection, #online-controls {
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 0 auto 20px auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#mode-selection button, #online-controls button, #reset-button, #surrender-button, #home-button, #record-controls button {
+    padding: 8px 12px;
+    font-size: 1em;
+    border-radius: 4px;
+    border: none;
+    background-color: #5a5a5a;
+    color: white;
+    cursor: pointer;
+}
+
+#mode-selection button:hover, #online-controls button:hover, #reset-button:hover, #surrender-button:hover, #home-button:hover, #record-controls button:hover {
+    background-color: #6a6a6a;
+}
+
+#online-controls input {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #2c2c2c;
+    color: #f0f0f0;
+}
+
+#reset-button {
+    width: 100%;
+    margin-top: 10px;
+    display: block;
+}
+
+#record-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+#move-history {
+    height: 150px;
+    overflow-y: auto;
+    background-color: #222;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+/* --- Mobile Responsive Layout --- */
+@media (max-width: 768px) {
+    h1 {
+        margin: 10px auto;
+        font-size: 1.5em;
+    }
+    
+    #game-container {
+        flex-direction: column;
+        align-items: center;
+        padding: 5px;
+    }
+
+    #board-wrapper {
+        width: 100%;
+    }
+
+    #right-panel {
+        width: 100%;
+        max-width: 400px; /* Max width for readability on tablets */
+        margin-left: 0;
+        margin-top: 20px;
+    }
+}
 
 /* Move History Styles */
 .move-pair {
