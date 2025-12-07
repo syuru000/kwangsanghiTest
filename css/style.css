@@ -113,7 +113,7 @@ h1 {
 }
 
 .valid-move-dot.capture {
-    background-color: rgba(239, 62, 54, 0.5);
+    background-color: rgba(255, 0, 0, 1);
 }
 
 #right-panel {
