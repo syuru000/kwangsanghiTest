@@ -293,3 +293,41 @@ class GameClient {
         this.socket.emit('surrender', { game_id: this.gameId });
     }
 }
+
+// --- Appended code for new navigation menu ---
+document.addEventListener('DOMContentLoaded', () => {
+    const hamburger = document.querySelector('.hamburger-menu');
+    const navLinks = document.querySelector('.nav-links');
+    const dropdownNavItems = document.querySelectorAll('.nav-links .dropdown .nav-item');
+
+    if (hamburger && navLinks) {
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+    }
+
+    if (dropdownNavItems) {
+        dropdownNavItems.forEach(item => {
+            item.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768) {
+                    const parentDropdown = this.parentElement;
+                    if (parentDropdown.classList.contains('dropdown')) {
+                        const dropdownContent = parentDropdown.querySelector('.dropdown-content');
+                        if (dropdownContent) {
+                            event.preventDefault();
+                            parentDropdown.classList.toggle('active');
+
+                            // Close other open dropdowns
+                            document.querySelectorAll('.nav-links .dropdown').forEach(otherDropdown => {
+                                if (otherDropdown !== parentDropdown) {
+                                    otherDropdown.classList.remove('active');
+
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        });
+    }
+});
