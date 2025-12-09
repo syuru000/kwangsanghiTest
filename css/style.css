@@ -21,8 +21,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    touch-action: none;
-    overflow-y: auto;
+    overflow-y: auto; /* Re-enable vertical scrolling */
 }
 
 #main-content {
@@ -227,6 +226,7 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
+    touch-action: none; /* Prevent scrolling ONLY on the board */
 }
 
 #game-board {
